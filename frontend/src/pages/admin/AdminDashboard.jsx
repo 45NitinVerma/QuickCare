@@ -1,71 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
-import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
-import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
-import { Modal } from '../../components/ui/Modal';
-import { Input } from '../../components/ui/Input';
-import { Users, Building, Activity, ShieldCheck, Stethoscope, Briefcase, Bell, Info, AlertCircle, Users2, TestTube, ArrowRight } from 'lucide-react';
-import { mockDoctors, mockLabPersonnel, mockUsers } from '../../data/mockData';
+import {
+  Users, Building, Activity, ShieldCheck, Stethoscope, Briefcase,
+  Bell, Info, AlertCircle, Users2, TestTube, ArrowRight, Loader2,
+} from 'lucide-react';
+import { clinicApi } from '../../services/api';
 import { motion } from 'framer-motion';
-
-const selectStyle = {
-  width: '100%', height: '2.5rem', borderRadius: '0.75rem',
-  padding: '0 0.75rem', fontSize: '0.875rem',
-  background: 'var(--bg-secondary)', color: 'var(--text-primary)',
-  border: '1px solid var(--border)', outline: 'none',
-};
-
-const labelStyle = {
-  display: 'block', fontSize: '0.875rem', fontWeight: 500,
-  marginBottom: '0.375rem', color: 'var(--text-secondary)',
-};
 
 export function AdminDashboard() {
   const navigate = useNavigate();
-  const [doctors, setDoctors] = useState(mockDoctors);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newDoctor, setNewDoctor] = useState({ name: '', department: '', experience: '' });
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const activePatientsCount = mockUsers.filter(u => u.role === 'Patient').length + 1200;
+  const loadMembers = useCallback(async () => {
+    try {
+      const { data: clinics } = await clinicApi.myClinics();
+      if (clinics?.length) {
+        const { data } = await clinicApi.members(clinics[0].id, {});
+        setMembers(Array.isArray(data) ? data : (data.results || []));
+      }
+    } catch {
+      // fail silently — counts will just show 0
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const handleAddDoctor = (e) => {
-    e.preventDefault();
-    const d = {
-      id: 'd' + (doctors.length + 1),
-      name: newDoctor.name,
-      department: newDoctor.department,
-      experience: newDoctor.experience + ' Years',
-      rating: 0,
-    };
-    setDoctors([...doctors, d]);
-    setIsModalOpen(false);
-    setNewDoctor({ name: '', department: '', experience: '' });
-  };
+  useEffect(() => { loadMembers(); }, [loadMembers]);
 
-  const removeDoctor = (id) => setDoctors(doctors.filter(d => d.id !== id));
+  const doctors  = members.filter(m => m.member_role === 'doctor');
+  const labStaff = members.filter(m => m.member_role === 'lab_member');
+  const totalStaff = members.length;
 
   const statCards = [
-    { label: 'Total Staff',     value: doctors.length + mockLabPersonnel.length, icon: Stethoscope, accent: '#3B82F6', bg: 'rgba(59,130,246,0.12)',  thick: '#3B82F6' },
-    { label: 'Active Patients', value: activePatientsCount.toLocaleString(),       icon: Users,       accent: '#10B981', bg: 'rgba(16,185,129,0.12)', thick: '#10B981' },
-    { label: 'Departments',     value: '8',                                         icon: Building,    accent: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  thick: '#F59E0B' },
-    { label: 'System Health',   value: '100%',                                      icon: ShieldCheck, accent: '#10B981', bg: 'rgba(16,185,129,0.12)', thick: '#10B981' },
+    { label: 'Total Staff',     value: loading ? '…' : totalStaff,         icon: Stethoscope, thick: '#3B82F6', bg: 'rgba(59,130,246,0.12)',  accent: '#3B82F6' },
+    { label: 'Doctors',         value: loading ? '…' : doctors.length,      icon: Users,       thick: '#10B981', bg: 'rgba(16,185,129,0.12)',  accent: '#10B981' },
+    { label: 'Lab Personnel',   value: loading ? '…' : labStaff.length,     icon: TestTube,    thick: '#8B5CF6', bg: 'rgba(139,92,246,0.12)',  accent: '#8B5CF6' },
+    { label: 'System Health',   value: '100%',                               icon: ShieldCheck, thick: '#10B981', bg: 'rgba(16,185,129,0.12)',  accent: '#10B981' },
   ];
 
   const alerts = [
     {
-      type: 'info',
       label: 'System Update',
-      body: 'The platform has been updated to v1.2 with new automated AI Summary integrations for lab reports.',
+      body: 'The platform has been updated with new AI Summary integrations for lab reports.',
       icon: Info,
       bg: 'var(--info-light)',
       accentColor: 'var(--info)',
     },
     {
-      type: 'warning',
       label: 'Action Required',
-      body: '2 new patient admission documents are awaiting manual verification by administrative staff.',
+      body: 'New patient admission documents may need manual verification.',
       icon: AlertCircle,
       bg: 'var(--warning-light)',
       accentColor: 'var(--warning)',
@@ -73,14 +59,16 @@ export function AdminDashboard() {
     },
   ];
 
+  // Recent doctors (top 5)
+  const recentDoctors = doctors.slice(0, 5);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <motion.div
         className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b"
         style={{ borderColor: 'var(--border)' }}
-        initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
-      >
+        initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Hospital Administration</h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>Platform management, staff directories, and global settings.</p>
@@ -101,7 +89,9 @@ export function AdminDashboard() {
                 </div>
                 <div>
                   <p className="text-xs font-medium leading-tight mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
-                  <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{value}</h3>
+                  <h3 className="text-xl font-black flex items-center gap-1" style={{ color: 'var(--text-primary)' }}>
+                    {loading && label !== 'System Health' ? <Loader2 size={16} className="animate-spin" /> : value}
+                  </h3>
                 </div>
               </CardContent>
             </Card>
@@ -112,9 +102,9 @@ export function AdminDashboard() {
       {/* Quick Actions */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
-          { label: 'Manage Staff', sub: 'Doctors & Lab Personnel', icon: Users2, path: '/admin/staff', accent: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
-          { label: 'View Analytics', sub: 'Reports & Insights', icon: Activity, path: '/admin/analytics', accent: '#10B981', bg: 'rgba(16,185,129,0.1)' },
-          { label: 'My Profile', sub: 'Hospital & Account Info', icon: ShieldCheck, path: '/admin/profile', accent: '#8B5CF6', bg: 'rgba(139,92,246,0.1)' },
+          { label: 'Manage Staff',   sub: 'Doctors & Lab Personnel',    icon: Users2,      path: '/admin/staff',     accent: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
+          { label: 'View Analytics', sub: 'Reports & Insights',         icon: Activity,    path: '/admin/analytics', accent: '#10B981', bg: 'rgba(16,185,129,0.1)' },
+          { label: 'My Profile',     sub: 'Hospital & Account Info',    icon: ShieldCheck, path: '/admin/profile',   accent: '#8B5CF6', bg: 'rgba(139,92,246,0.1)' },
         ].map(({ label, sub, icon: Icon, path, accent, bg }) => (
           <motion.button key={label} onClick={() => navigate(path)} whileTap={{ scale: 0.98 }}
             className="flex items-center gap-4 p-4 rounded-2xl border text-left transition-all hover:shadow-[var(--shadow-md)] w-full"
@@ -139,56 +129,61 @@ export function AdminDashboard() {
                 <CardTitle className="flex items-center gap-2">
                   <Briefcase size={18} style={{ color: 'var(--text-muted)' }} /> Staff Directory
                 </CardTitle>
-                <Button size="sm" onClick={() => setIsModalOpen(true)}>+ Add Staff</Button>
+                <Button size="sm" onClick={() => navigate('/admin/staff')}>Manage Staff</Button>
               </div>
             </CardHeader>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableHeader>Staff Name</TableHeader>
-                  <TableHeader>Department</TableHeader>
-                  <TableHeader>Experience</TableHeader>
-                  <TableHeader className="text-right">Actions</TableHeader>
-                </TableRow>
-              </TableHead>
-              <tbody>
-                {doctors.map((d, i) => (
-                  <motion.tr
-                    key={d.id}
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 + i * 0.04 }}
-                    className="transition-colors hover:bg-[var(--bg-secondary)]"
-                    style={{ borderBottom: '1px solid var(--border)' }}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
-                          style={{ background: 'var(--primary-muted)', color: 'var(--primary)' }}>
-                          {d.name.charAt(4)}
-                        </div>
-                        <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{d.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{d.department}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{d.experience}</span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <button
-                        onClick={() => removeDoctor(d.id)}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
-                        style={{ color: 'var(--danger)', background: 'var(--danger-light)' }}
-                        onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                      >
-                        Remove
-                      </button>
-                    </TableCell>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </Table>
+            <div className="overflow-x-auto">
+              {loading ? (
+                <div className="flex items-center justify-center gap-2 py-10" style={{ color: 'var(--text-muted)' }}>
+                  <Loader2 size={18} className="animate-spin" /> Loading…
+                </div>
+              ) : recentDoctors.length === 0 ? (
+                <div className="py-10 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                  No staff yet. <button onClick={() => navigate('/admin/staff')} className="underline" style={{ color: 'var(--primary)' }}>Add doctors</button> from the staff page.
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      {['Name', 'Department', 'Status'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-widest"
+                          style={{ color: 'var(--text-muted)' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentDoctors.map((d, i) => (
+                      <motion.tr key={d.id}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 + i * 0.04 }}
+                        className="transition-colors hover:bg-[var(--bg-secondary)]"
+                        style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
+                              style={{ background: 'var(--primary-muted)', color: 'var(--primary)' }}>
+                              {(d.user?.name || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{d.user?.name || '—'}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{d.department || '—'}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                            style={{
+                              background: d.status === 'active' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                              color: d.status === 'active' ? 'var(--success)' : 'var(--danger)',
+                            }}>
+                            {d.status === 'active' ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </Card>
         </div>
 
@@ -210,10 +205,8 @@ export function AdminDashboard() {
                   </div>
                   <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{body}</p>
                   {action && (
-                    <button
-                      className="mt-3 w-full h-8 text-xs font-semibold rounded-lg border transition-colors"
-                      style={{ borderColor: `${accentColor}44`, color: accentColor, background: 'transparent' }}
-                    >
+                    <button className="mt-3 w-full h-8 text-xs font-semibold rounded-lg border transition-colors"
+                      style={{ borderColor: `${accentColor}44`, color: accentColor, background: 'transparent' }}>
                       {action}
                     </button>
                   )}
@@ -223,31 +216,6 @@ export function AdminDashboard() {
           </Card>
         </div>
       </div>
-
-      {/* Add Staff Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Register New Doctor">
-        <form onSubmit={handleAddDoctor} className="space-y-4">
-          <div>
-            <label style={labelStyle}>Full Name</label>
-            <Input placeholder="Dr. Jane Smith" value={newDoctor.name} onChange={e => setNewDoctor({ ...newDoctor, name: e.target.value })} required />
-          </div>
-          <div>
-            <label style={labelStyle}>Department</label>
-            <select style={selectStyle} value={newDoctor.department} onChange={e => setNewDoctor({ ...newDoctor, department: e.target.value })} required>
-              <option value="">Select a department</option>
-              {['Cardiology', 'Neurology', 'Pediatrics', 'Orthopedics', 'General'].map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>Experience (Years)</label>
-            <Input type="number" placeholder="10" value={newDoctor.experience} onChange={e => setNewDoctor({ ...newDoctor, experience: e.target.value })} required />
-          </div>
-          <div className="flex justify-end gap-3 mt-6">
-            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="submit">Create Staff Profile</Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }

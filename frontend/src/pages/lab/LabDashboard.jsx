@@ -3,8 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
-import { TestTube, FileUp, Sparkles, Activity, ArrowRight } from 'lucide-react';
-import { mockReports } from '../../data/mockData';
+import { TestTube, FileUp, Sparkles, Activity, ArrowRight, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -67,27 +66,9 @@ export function LabDashboard() {
             <CardTitle>Recent Uploads</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y" style={{ '--tw-divide-color': 'var(--border)' }}>
-              {mockReports.slice(0, 4).map((r, i) => (
-                <motion.div
-                  key={r.id}
-                  initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 + i * 0.06 }}
-                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors hover:bg-[var(--bg-secondary)]"
-                  style={{ borderBottom: '1px solid var(--border)' }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg" style={{ background: 'var(--primary-muted)', color: 'var(--primary)' }}>
-                      <FileUp size={16} />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{r.name}</h4>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Patient ID: {r.patientId} · {r.type}</p>
-                    </div>
-                  </div>
-                  <Badge variant={r.status === 'Reviewed' ? 'success' : 'primary'}>{r.status}</Badge>
-                </motion.div>
-              ))}
+            <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>
+              <FileText size={32} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No uploads yet. Use the button above to upload a new report.</p>
             </div>
           </CardContent>
         </Card>

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent } from '../../components/ui/Card';
-import { User, Shield, Key, Mail, Globe, Clock, Star, Calendar, Building2, FileText, Phone, MapPin } from 'lucide-react';
+import { User, Shield, Key, Mail, Globe, Clock, Star, Calendar, Building2, FileText, Phone, MapPin, Loader2, CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
-import { motion } from 'framer-motion';
+import { Input } from '../../components/ui/Input';
+import { motion, AnimatePresence } from 'framer-motion';
+import { clinicApi } from '../../services/api';
 
 const disabledInputStyle = {
   width: '100%', borderRadius: '0.75rem',
@@ -19,6 +21,56 @@ const labelStyle = {
 
 export function AdminProfile() {
   const { user } = useAuth();
+  
+  const [clinic, setClinic] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({});
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, type = 'success') => setToast({ msg, type });
+
+  const loadClinic = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await clinicApi.myClinics();
+      if (data && data.length > 0) {
+        setClinic(data[0]);
+        setFormData({
+          name: data[0].name || '',
+          phone: data[0].phone || '',
+          city: data[0].city || '',
+          state: data[0].state || '',
+          address: data[0].address || '',
+          website: data[0].website || '',
+        });
+      }
+    } catch (err) {
+      showToast('Failed to load clinic information', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadClinic(); }, [loadClinic]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    if (!clinic) return;
+    setSaving(true);
+    try {
+      await clinicApi.updateClinic(clinic.id, formData);
+      showToast('Clinic details updated successfully!');
+      setClinic({ ...clinic, ...formData });
+    } catch (err) {
+      showToast('Failed to update clinic details', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Fall back to mock hospital data
   const hospital = user?.hospitalInfo || {
@@ -36,19 +88,19 @@ export function AdminProfile() {
   };
 
   const personalFields = [
-    { icon: User,   label: 'Full Name',        val: user?.name || 'Dr. Sunil Varma' },
+    { icon: User,   label: 'Full Name',        val: user?.name || '' },
     { icon: Key,    label: 'System Clearance', val: 'Level 5 (All Systems)' },
-    { icon: Mail,   label: 'Email Address',    val: user?.email || 'admin@apolloquickcare.com' },
+    { icon: Mail,   label: 'Email Address',    val: user?.email || `${user?.contact}@quickcare.com` },
     { icon: Globe,  label: 'Access Region',    val: 'All India — All Branches' },
   ];
 
   const hospitalFields = [
-    { icon: Building2, label: 'Hospital Name',        val: hospital.name },
-    { icon: FileText,  label: 'Registration Number',  val: hospital.registrationNumber },
-    { icon: Building2, label: 'Hospital Type',        val: hospital.type },
-    { icon: Phone,     label: 'Contact Number',       val: hospital.contactNumber },
-    { icon: Mail,      label: 'Hospital Email',       val: hospital.email },
-    { icon: Globe,     label: 'Website',              val: hospital.website || '—' },
+    { name: 'name', icon: Building2, label: 'Hospital Name',        val: formData.name },
+    { name: 'registration', icon: FileText,  label: 'Registration Number',  val: clinic?.registration_number || `REG-${clinic?.id?.split('-')[0]}` },
+    { name: 'type', icon: Building2, label: 'Hospital Type',        val: clinic?.clinic_type || 'clinic' },
+    { name: 'phone', icon: Phone,     label: 'Contact Number',       val: formData.phone },
+    { name: 'email', icon: Mail,      label: 'Hospital Email',       val: clinic?.email || `${clinic?.slug}@quickcare.com` },
+    { name: 'website', icon: Globe,     label: 'Website',              val: formData.website },
   ];
 
   const stats = [
@@ -75,7 +127,9 @@ export function AdminProfile() {
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Administrator Profile</h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>Manage your system access and hospital registration.</p>
         </div>
-        <Button className="gap-2 shrink-0">Save Changes</Button>
+        <Button className="gap-2 shrink-0" onClick={handleSave} disabled={saving || !clinic}>
+          {saving && <Loader2 size={14} className="animate-spin" />} Save Changes
+        </Button>
       </motion.div>
 
       <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -122,7 +176,7 @@ export function AdminProfile() {
               <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
                 <FileText size={14} style={{ color: 'var(--text-muted)' }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{hospital.certFileName}</p>
+                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>hospital_registration_cert.pdf</p>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Registration Certificate · PDF</p>
                 </div>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--success)' }}>Valid</span>
@@ -155,26 +209,63 @@ export function AdminProfile() {
           <Card>
             <CardContent className="p-6 space-y-5">
               <h3 className="font-semibold text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Hospital Information</h3>
-              <div className="grid md:grid-cols-2 gap-5">
-                {hospitalFields.map(({ icon: Icon, label, val }) => (
-                  <div key={label}>
-                    <label style={labelStyle}>{label}</label>
+              {loading ? (
+                <div className="flex items-center justify-center py-8" style={{ color: 'var(--text-muted)' }}>
+                  <Loader2 size={24} className="animate-spin" />
+                </div>
+              ) : clinic ? (
+                <>
+                  <div className="grid md:grid-cols-2 gap-5">
+                    {hospitalFields.map(({ name, icon: Icon, label, val }) => (
+                      <div key={label}>
+                        <label style={labelStyle}>{label}</label>
+                        <div className="relative">
+                          <Icon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                          {name === 'registration' || name === 'type' || name === 'email' ? (
+                            <input disabled value={val || ''} style={disabledInputStyle} />
+                          ) : (
+                            <input
+                              name={name}
+                              value={val || ''}
+                              onChange={handleChange}
+                              className="w-full rounded-xl border pl-9 pr-3 py-2 text-sm transition-all focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent outline-none"
+                              style={{ background: 'var(--bg)', color: 'var(--text-primary)', borderColor: 'var(--border)' }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Full Address</label>
                     <div className="relative">
-                      <Icon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-                      <input disabled defaultValue={val} style={disabledInputStyle} />
+                      <MapPin size={14} className="absolute left-3 top-3 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                      <textarea name="address" value={formData.address || ''} onChange={handleChange}
+                        className="w-full rounded-xl border pl-9 pr-3 py-2 text-sm resize-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent outline-none"
+                        style={{ background: 'var(--bg)', color: 'var(--text-primary)', borderColor: 'var(--border)', minHeight: 64 }} />
                     </div>
                   </div>
-                ))}
-              </div>
-              <div>
-                <label style={labelStyle}>Full Address</label>
-                <div className="relative">
-                  <MapPin size={14} className="absolute left-3 top-3 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-                  <textarea disabled defaultValue={`${hospital.address}, ${hospital.city}, ${hospital.state}`}
-                    className="w-full rounded-xl border pl-9 pr-3 py-2 text-sm resize-none"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', borderColor: 'var(--border)', minHeight: 64 }} />
+                  <div className="grid md:grid-cols-2 gap-5">
+                    <div>
+                      <label style={labelStyle}>City</label>
+                      <input name="city" value={formData.city || ''} onChange={handleChange}
+                        className="w-full rounded-xl border px-3 py-2 text-sm transition-all focus:ring-2 focus:ring-[var(--primary)] outline-none"
+                        style={{ background: 'var(--bg)', color: 'var(--text-primary)', borderColor: 'var(--border)' }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>State</label>
+                      <input name="state" value={formData.state || ''} onChange={handleChange}
+                        className="w-full rounded-xl border px-3 py-2 text-sm transition-all focus:ring-2 focus:ring-[var(--primary)] outline-none"
+                        style={{ background: 'var(--bg)', color: 'var(--text-primary)', borderColor: 'var(--border)' }} />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                  No clinic found. Please complete the registration process.
                 </div>
-              </div>
+              )}
+
             </CardContent>
           </Card>
 
@@ -198,6 +289,18 @@ export function AdminProfile() {
           </Card>
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl"
+            style={{ background: toast.type === 'error' ? 'var(--danger)' : 'var(--success)', color: '#fff', minWidth: 280 }}>
+            {toast.type === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+            <span className="text-sm font-semibold">{toast.msg}</span>
+            <button onClick={() => setToast(null)} className="ml-auto"><X size={14} /></button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

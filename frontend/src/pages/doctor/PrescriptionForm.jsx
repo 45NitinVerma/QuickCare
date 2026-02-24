@@ -4,13 +4,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Pill, CheckCircle2, User, UploadCloud } from 'lucide-react';
-import { mockUsers } from '../../data/mockData';
 
 export function PrescriptionForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
-  const patient = mockUsers.find(u => u.id === id) || { name: 'Unknown Patient' };
+  const patient = { name: `Patient #${id}` };
 
   const [form, setForm] = useState({
     medicine: '',

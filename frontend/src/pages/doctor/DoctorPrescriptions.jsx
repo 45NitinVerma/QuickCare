@@ -3,8 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Plus, Upload, FileText, Pill, Clock, Trash2, Calendar } from 'lucide-react';
-import { mockUsers, mockPrescriptions } from '../../data/mockData';
+import { Plus, Upload, FileText, Pill, Clock, Trash2, Calendar, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const labelStyle = {
@@ -47,13 +46,20 @@ export function DoctorPrescriptions() {
         <motion.div className="lg:col-span-2 space-y-6" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 }}>
           <Card>
             <CardContent className="p-8 space-y-8">
-              {/* Patient selector */}
+              {/* Patient contact input */}
               <div>
-                <label style={labelStyle}>Patient</label>
-                <select style={selectStyle} value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
-                  <option value="" disabled>Select patient…</option>
-                  {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                <label style={labelStyle}>Patient Contact Number</label>
+                <div className="relative">
+                  <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                  <input
+                    type="tel"
+                    placeholder="Enter patient's 10-digit contact number"
+                    value={selectedPatient}
+                    onChange={e => setSelectedPatient(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    className="w-full h-11 pl-9 pr-3 rounded-xl text-sm transition-all focus:outline-none"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                  />
+                </div>
               </div>
 
               {/* Medicines */}
@@ -127,31 +133,10 @@ export function DoctorPrescriptions() {
               <Clock size={16} style={{ color: 'var(--text-muted)' }} /> Recent Prescriptions
             </div>
             <div className="max-h-[600px] overflow-y-auto divide-y" style={{ '--tw-divide-opacity': 1 }}>
-              {pastPrescriptions.map(p => {
-                const patName = patients.find(pat => pat.id === p.patientId)?.name || 'Unknown Patient';
-                return (
-                  <div key={p.id} className="p-4 cursor-pointer group transition-colors hover:bg-[var(--bg-secondary)]">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-semibold text-sm transition-colors group-hover:text-[var(--primary)]" style={{ color: 'var(--text-primary)' }}>
-                        {patName}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
-                      <Calendar size={11} /> {p.date}
-                    </div>
-                    <div className="flex items-start gap-2 p-2.5 rounded-xl border" style={{ background: 'var(--primary-muted)', borderColor: 'rgba(96,165,250,0.2)' }}>
-                      <Pill size={14} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-                      <div>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{p.medicine}</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{p.dosage} · {p.duration}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {pastPrescriptions.length === 0 && (
-                <div className="p-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>No previous prescriptions found.</div>
-              )}
+              <div className="p-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                <Pill size={24} className="mx-auto mb-2 opacity-30" />
+                <p>Prescription history coming soon.</p>
+              </div>
             </div>
           </Card>
         </motion.div>

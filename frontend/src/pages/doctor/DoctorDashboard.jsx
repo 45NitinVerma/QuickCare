@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
-import { ArrowRight, Sparkles, Users, Calendar, Clock, Activity, TrendingUp } from 'lucide-react';
-import { mockAppointments, mockReports, patientConsents } from '../../data/mockData';
+import { ArrowRight, Sparkles, Users, Calendar, Clock, Activity, TrendingUp, Loader2 } from 'lucide-react';
+import { appointmentApi, documentApi } from '../../services/api';
 import { CalendarWidget } from '../../components/ui/CalendarWidget';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -35,13 +35,37 @@ export function DoctorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showCalendar, setShowCalendar] = useState(false);
+  const [todaysAppointments, setTodaysAppointments] = useState([]);
+  const [allAppointments, setAllAppointments] = useState([]);
+  const [consentsCount, setConsentsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const myAppointments = mockAppointments.filter(a => a.doctorId === user.id);
-  const todaysAppointments = myAppointments.filter(a => a.date === todayStr);
-  const myPatients = Array.from(new Set(myAppointments.map(a => a.patientId)));
-  const pendingReports = mockReports.filter(r => myPatients.includes(r.patientId) && r.status === 'Needs Review');
-  const grantedAccess = patientConsents.filter(c => c.doctorId === user.id && c.status === 'Granted').length;
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [apptRes, consentRes] = await Promise.allSettled([
+        appointmentApi.doctorList({ date: todayStr }),
+        documentApi.doctorConsents({ status: 'granted' }),
+      ]);
+      if (apptRes.status === 'fulfilled') {
+        const data = apptRes.value.data;
+        const list = Array.isArray(data) ? data : (data.results || []);
+        setTodaysAppointments(list);
+        setAllAppointments(list);
+      }
+      if (consentRes.status === 'fulfilled') {
+        const data = consentRes.value.data;
+        const list = Array.isArray(data) ? data : (data.results || []);
+        setConsentsCount(list.length);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [todayStr]);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -67,9 +91,9 @@ export function DoctorDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <StatCard index={0} icon={Clock} iconBg="bg-blue-50 dark:bg-blue-900/20" iconColor="text-blue-600" accentColor="border-t-blue-500" label="Today's Appointments" value={todaysAppointments.length} sublabel="scheduled" />
-        <StatCard index={1} icon={Sparkles} iconBg="bg-violet-50 dark:bg-violet-900/20" iconColor="text-violet-600" accentColor="border-t-violet-500" label="Pending Lab Reviews" value={pendingReports.length || 3} sublabel="need attention" />
-        <StatCard index={2} icon={Activity} iconBg="bg-emerald-50 dark:bg-emerald-900/20" iconColor="text-emerald-600" accentColor="border-t-emerald-500" label="Active Consents" value={grantedAccess} sublabel="patients connected" />
+        <StatCard index={0} icon={Clock} iconBg="bg-blue-50 dark:bg-blue-900/20" iconColor="text-blue-600" accentColor="border-t-blue-500" label="Today's Appointments" value={loading ? '…' : todaysAppointments.length} sublabel="scheduled" />
+        <StatCard index={1} icon={Sparkles} iconBg="bg-violet-50 dark:bg-violet-900/20" iconColor="text-violet-600" accentColor="border-t-violet-500" label="Total This Month" value={loading ? '…' : allAppointments.length} sublabel="appointments" />
+        <StatCard index={2} icon={Activity} iconBg="bg-emerald-50 dark:bg-emerald-900/20" iconColor="text-emerald-600" accentColor="border-t-emerald-500" label="Active Consents" value={loading ? '…' : consentsCount} sublabel="patients connected" />
       </div>
 
       {/* Main Grid */}
@@ -79,7 +103,7 @@ export function DoctorDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Today's Schedule</CardTitle>
-              <Badge variant="primary">{todaysAppointments.length} patients</Badge>
+              <Badge variant="primary">{loading ? '…' : todaysAppointments.length} patients</Badge>
             </CardHeader>
             <Table>
               <TableHead>
@@ -91,22 +115,34 @@ export function DoctorDashboard() {
                 </TableRow>
               </TableHead>
               <tbody>
-                {todaysAppointments.map(appt => (
-                  <TableRow key={appt.id}>
-                    <TableCell className="font-semibold text-sm" style={{ color: 'var(--primary)' }}>{appt.time}</TableCell>
-                    <TableCell>
-                      <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{appt.patientName}</div>
-                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>ID: {appt.patientId}</div>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan="4" className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
+                      <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Loading…</span>
                     </TableCell>
-                    <TableCell className="text-sm truncate max-w-[120px]" style={{ color: 'var(--text-secondary)' }}>{appt.reason}</TableCell>
+                  </TableRow>
+                ) : todaysAppointments.map(appt => (
+                  <TableRow key={appt.id}>
+                    <TableCell className="font-semibold text-sm" style={{ color: 'var(--primary)' }}>{appt.appointment_time || appt.time}</TableCell>
+                    <TableCell>
+                      <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                        {appt.patient?.name || appt.patientName || 'Patient'}
+                      </div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {appt.appointment_type || appt.reason || '—'}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm truncate max-w-[120px]" style={{ color: 'var(--text-secondary)' }}>
+                      {appt.notes || appt.reason || '—'}
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => navigate('/doctor/patient/' + appt.patientId)}>
+                      <Button variant="ghost" size="sm" onClick={() => navigate('/doctor/queue')}>
                         View <ArrowRight size={13} />
                       </Button>
                     </TableCell>
                   </TableRow>
                 ))}
-                {todaysAppointments.length === 0 && (
+                {!loading && todaysAppointments.length === 0 && (
                   <TableRow>
                     <TableCell colSpan="4" className="text-center py-10" style={{ color: 'var(--text-muted)' }}>
                       No appointments scheduled for today
@@ -152,7 +188,7 @@ export function DoctorDashboard() {
                   {showCalendar ? 'Hide' : 'Show'} Calendar
                 </span>
               </Button>
-              {showCalendar && <CalendarWidget events={myAppointments} />}
+              {showCalendar && <CalendarWidget events={allAppointments} />}
             </CardContent>
           </Card>
         </motion.div>

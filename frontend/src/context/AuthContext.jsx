@@ -1,41 +1,78 @@
-import React, { createContext, useState, useContext } from 'react';
-import { generateAbhaId } from '../data/mockData';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { authApi, ROLE_MAP, setTokens, clearTokens, getToken } from '../services/api';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser]       = useState(null);
+  const [isLoading, setIsLoading] = useState(true); // true while restoring session
 
-  const login = (role, userData = null) => {
-    if (userData) {
-      setUser({ id: Date.now().toString(), role, ...userData });
-      return;
-    }
-    const defaults = {
-      Patient: { id: '1',  role: 'Patient', name: 'Rohan Mehta',      email: 'rohan@patient.com',          abhaId: 'ABHA-4592-8842-1023', bloodGroup: 'O+', mobile: '+91-9876543210', dob: '1991-04-12', gender: 'Male',   state: 'Maharashtra', city: 'Pune',     emergencyContact: { name: 'Priya Mehta',   number: '+91-9898001234' }, medicalInfo: { allergies: 'Penicillin', conditions: 'Hypertension', medications: 'Amlodipine 5mg' } },
-      Doctor:  { id: '2',  role: 'Doctor',  name: 'Dr. Priya Venkatesh', email: 'priya.v@quickcare.com',   department: 'Cardiology',  experience: '12 Years', qualification: 'MD, DM Cardiology', licenseNumber: 'MCI-2012-08432', assignedHospital: 'Apollo QuickCare Hospital', mobile: '+91-9845001001' },
-      Lab:     { id: '3',  role: 'Lab',     name: 'Sanjay Kudale',      email: 'sanjay@lab.quickcare.com', labDepartment: 'Pathology', qualification: 'B.Sc MLT', employeeId: 'EMP-LAB-001', assignedHospital: 'Apollo QuickCare Hospital', mobile: '+91-9900111001' },
-      Admin:   { id: '4',  role: 'Admin',   name: 'Dr. Sunil Varma',    email: 'admin@apolloquickcare.com', hospitalInfo: { name: 'Apollo QuickCare Hospital', registrationNumber: 'MH/HOSP/2018/04821', type: 'Multi-speciality', state: 'Maharashtra', city: 'Mumbai', address: '14, Hiranandani Business Park, Powai, Mumbai – 400076', contactNumber: '+91-22-6780-0000', verificationStatus: 'Verified', certFileName: 'hospital_registration_cert.pdf' } },
+  // Map backend user response → frontend user object
+  const mapUser = (u) => ({
+    id:                   u.id,
+    name:                 u.name,
+    contact:              u.contact,
+    email:                u.email || '',
+    age:                  u.age   || null,
+    gender:               u.gender || '',
+    blood_group:          u.blood_group || '',
+    role:                 ROLE_MAP[u.roles?.id] || 'Patient',
+    roles:                u.roles,
+    is_partial_onboarding:   u.is_partial_onboarding  || false,
+    is_complete_onboarding:  u.is_complete_onboarding || false,
+  });
+
+  // Restore session from stored token on mount
+  useEffect(() => {
+    const restore = async () => {
+      if (!getToken()) { setIsLoading(false); return; }
+      try {
+        const { data } = await authApi.me();
+        setUser(mapUser(data));
+      } catch {
+        clearTokens();
+      } finally {
+        setIsLoading(false);
+      }
     };
-    setUser(defaults[role]);
-  };
+    restore();
+  }, []);
 
-  const register = (role, formData) => {
-    const base = { id: Date.now().toString(), role, ...formData };
-    if (role === 'Patient') {
-      base.abhaId = generateAbhaId();
+  /**
+   * Login with contact number + password.
+   * Returns { success, role, error }
+   */
+  const login = useCallback(async (contact, password) => {
+    try {
+      const { data } = await authApi.login(contact, password);
+      setTokens(data.access, data.refresh);
+      const u = mapUser(data.user);
+      setUser(u);
+      return { success: true, role: u.role };
+    } catch (err) {
+      const msg = err.response?.data?.message
+        || err.response?.data?.detail
+        || 'Invalid credentials. Please try again.';
+      return { success: false, error: msg };
     }
-    if (role === 'Admin') {
-      base.hospitalInfo = formData.hospitalInfo || {};
-    }
-    setUser(base);
-    return base;
-  };
+  }, []);
 
-  const logout = () => setUser(null);
+  const logout = useCallback(() => {
+    clearTokens();
+    setUser(null);
+  }, []);
+
+  /**
+   * Call after OTP-verified registration completes and we have tokens.
+   * Used by PatientRegister & HospitalAdminRegister to set the user.
+   */
+  const setUserFromTokens = useCallback((access, refresh, userData) => {
+    setTokens(access, refresh);
+    setUser(mapUser(userData));
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, setUserFromTokens }}>
       {children}
     </AuthContext.Provider>
   );

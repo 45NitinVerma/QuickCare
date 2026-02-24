@@ -69,7 +69,8 @@ export function MainLayout() {
     ],
     Admin: [
       { name: 'Dashboard',      path: '/admin',              icon: LayoutDashboard },
-      { name: 'Doctors',        path: '/admin/doctors',      icon: Users },
+      { name: 'Manage Staff',   path: '/admin/staff',        icon: Users },
+      { name: 'Time Slots',     path: '/admin/slots',        icon: Calendar },
       { name: 'Analytics',      path: '/admin/analytics',    icon: BarChart3 },
       { name: 'My Profile',     path: '/admin/profile',      icon: UserIcon },
     ],

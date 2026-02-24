@@ -37,6 +37,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AnalyticsViewer } from './pages/admin/AnalyticsViewer';
 import { AdminProfile } from './pages/admin/AdminProfile';
 import { ManageStaff } from './pages/admin/ManageStaff';
+import { AdminSlots } from './pages/admin/AdminSlots';
 
 function App() {
   return (
@@ -88,6 +89,7 @@ function App() {
               <Route path="/admin/analytics" element={<AnalyticsViewer />} />
               <Route path="/admin/profile" element={<AdminProfile />} />
               <Route path="/admin/staff" element={<ManageStaff />} />
+              <Route path="/admin/slots" element={<AdminSlots />} />
             </Route>
 
           </Route>

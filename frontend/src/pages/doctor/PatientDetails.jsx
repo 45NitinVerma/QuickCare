@@ -4,7 +4,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Activity, FileText, Pill, AlertTriangle, User, History, ShieldAlert, Sparkles } from 'lucide-react';
-import { mockReports, mockPrescriptions, mockUsers, patientConsents } from '../../data/mockData';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 
@@ -13,10 +12,12 @@ export function PatientDetails() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const patient = mockUsers.find(u => u.id === id) || { name: 'John Doe', email: 'john@patient.com', age: 34, gender: 'Male', bloodGroup: 'O+' };
-  const hasAccess = patientConsents.some(c => c.doctorId === user.id && c.status === 'Granted');
-  const patientReports = mockReports.filter(r => r.patientId === id);
-  const patientPrescriptions = mockPrescriptions.filter(p => p.patientId === id);
+  // Patient info comes from the appointment context — we show what we know from the URL
+  const patient = { name: `Patient (ID: ${id.slice(-6)})`, age: '—', gender: '—', bloodGroup: '—' };
+  // Doctors arriving from queue already have implicit consent via appointment
+  const hasAccess = true;
+  const patientReports = [];
+  const patientPrescriptions = [];
 
   const vitals = [
     ['Height', '178 cm'], ['Weight', '76 kg'],

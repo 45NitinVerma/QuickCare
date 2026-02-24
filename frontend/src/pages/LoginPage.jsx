@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { HeartPulse, ArrowRight, User, Stethoscope, TestTube, Settings, Moon, Sun, Mail, Lock, Sparkles, CheckCircle2, UserPlus, Building2 } from 'lucide-react';
+import { HeartPulse, ArrowRight, User, Stethoscope, TestTube, Settings, Moon, Sun, Phone, Lock, Sparkles, CheckCircle2, UserPlus, Building2, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,24 +18,29 @@ const roleRoutes = { Patient: '/patient', Doctor: '/doctor', Lab: '/lab', Admin:
 export function LoginPage() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPwd, setShowPwd] = useState(false);
+  const [showPwd, setShowPwd]   = useState(false);
+  const [apiError, setApiError] = useState('');
   const { login } = useAuth();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
   const { isDark, toggleTheme } = useTheme();
 
   const selectedRoleData = roles.find(r => r.id === selectedRole);
 
-  const handleAuthSubmit = (e) => {
+  const handleAuthSubmit = async (e) => {
     e.preventDefault();
     if (!selectedRole) return;
+    setApiError('');
     const formData = new FormData(e.target);
-    const email = formData.get('email');
-    const name = formData.get('name') || email.split('@')[0];
+    const contact  = formData.get('contact');
+    const password = formData.get('password');
     setIsLoading(true);
-    setTimeout(() => {
-      login(selectedRole, { name, email });
-      navigate(roleRoutes[selectedRole]);
-    }, 700);
+    const result = await login(contact, password);
+    setIsLoading(false);
+    if (result.success) {
+      navigate(roleRoutes[result.role] || '/');
+    } else {
+      setApiError(result.error);
+    }
   };
 
   return (
@@ -90,7 +95,7 @@ export function LoginPage() {
                   return (
                     <motion.button
                       key={role.id}
-                      onClick={() => setSelectedRole(role.id)}
+                      onClick={() => { setSelectedRole(role.id); setApiError(''); }}
                       whileTap={{ scale: 0.97 }}
                       className={`relative flex flex-col items-start gap-1.5 p-3 rounded-xl border-2 text-left transition-all duration-200 ${isSelected ? `${role.border} bg-[var(--primary-muted)]` : 'border-[var(--border)] hover:border-[var(--border-strong)]'}`}
                     >
@@ -133,9 +138,11 @@ export function LoginPage() {
                     2. Sign in
                   </p>
 
+                  {/* Contact number field */}
                   <div className="relative">
-                    <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 z-10" style={{ color: 'var(--text-muted)' }} />
-                    <input name="email" type="email" placeholder="Email address" required
+                    <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 z-10" style={{ color: 'var(--text-muted)' }} />
+                    <input name="contact" type="tel" inputMode="numeric" placeholder="Mobile number (10 digits)" required
+                      maxLength={10}
                       className="flex h-10 w-full rounded-xl px-3 pl-9 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]"
                       style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border)' }}
                     />
@@ -151,6 +158,13 @@ export function LoginPage() {
                       {showPwd ? '🙈' : '👁'}
                     </button>
                   </div>
+
+                  {/* API error */}
+                  {apiError && (
+                    <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl" style={{ background: 'var(--danger-light)', color: 'var(--danger)' }}>
+                      <AlertCircle size={13} /> {apiError}
+                    </div>
+                  )}
 
                   <Button type="submit" className="w-full gap-2" disabled={isLoading}>
                     {isLoading ? (
@@ -194,10 +208,6 @@ export function LoginPage() {
               </div>
             )}
           </motion.div>
-
-          <motion.p className="text-center text-xs mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} style={{ color: 'var(--text-muted)' }}>
-            Demo mode: any email & password will work for the selected role.
-          </motion.p>
         </div>
       </div>
     </div>
