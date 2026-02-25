@@ -105,6 +105,9 @@ export const authApi = {
   // Clinic owner registration
   clinicStep1: (data)  => api.post('/users/onboarding/clinic/step1/', data),
   clinicStep2: (data)  => api.post('/users/onboarding/clinic/step2/', data),
+
+  // Staff (doctor / lab / receptionist) first-login profile completion
+  memberComplete: (data) => api.put('/users/onboarding/member/complete/', data),
 };
 
 // Clinics

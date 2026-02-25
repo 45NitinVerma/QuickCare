@@ -16,14 +16,16 @@ from .serializers import (
     UserSerializer, UserCreateSerializer, UserAddressSerializer,
     PatientStep1Serializer, PatientStep2Serializer,
     PatientMedicalProfileSerializer, ClinicOwnerStep1Serializer,
+    MemberCompleteOnboardingSerializer,
 )
 
 User = get_user_model()
 
 MASTER_OTP = config('MASTER_OTP', default='')
 
-# OTP cache timeout — 10 minutes (matches TOTP interval)
-OTP_CACHE_TIMEOUT = 600
+# OTP cache timeout — 30 minutes (matches TOTP interval)
+# Registration session data is cached for this long; increase if users report expiry.
+OTP_CACHE_TIMEOUT = 1800
 
 
 def generate_base32(contact):
@@ -374,6 +376,98 @@ class ClinicOwnerRegisterStep2(APIView):
             'user': UserSerializer(user).data,
             'next_step': '/api/clinics/onboarding/step3/',
         }, status=status.HTTP_201_CREATED)
+
+
+# ═══════════════════════════════════════════════════════════════
+# MEMBER (DOCTOR / LAB / RECEPTIONIST) FIRST-LOGIN ONBOARDING
+# ═══════════════════════════════════════════════════════════════
+
+class MemberCompleteOnboarding(APIView):
+    """
+    Clinic-added staff (doctor / lab member / receptionist) complete their
+    profile on first login with the temporary password.
+
+    PUT /api/users/onboarding/member/complete/
+    {
+        "name": "Dr. Suresh Yadav",
+        "gender": "male",
+        "age": 35,
+        "email": "suresh@example.com",
+        "blood_group": "O+",
+        "specialty": "Cardiology",
+        "qualification": "MBBS, MD",
+        "experience_years": 10,
+        "address_area": "Vaishali Nagar",
+        "house_no": "5B",
+        "town": "Jaipur",
+        "state": "Rajasthan",
+        "pincode": "302021"
+    }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def put(self, request):
+        serializer = MemberCompleteOnboardingSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        user = request.user
+
+        # 1. Update personal user fields
+        if data.get('name'):
+            user.name = data['name']
+        if data.get('gender'):
+            user.gender = data['gender']
+        if data.get('age') is not None:
+            user.age = data['age']
+        if data.get('email'):
+            user.email = data['email']
+        if data.get('blood_group'):
+            user.blood_group = data['blood_group']
+
+        user.is_partial_onboarding = False
+        user.is_complete_onboarding = True
+        user.save()
+
+        # 2. Create / update home address
+        address_fields = ['address_area', 'house_no', 'town', 'state', 'pincode']
+        if any(data.get(f) for f in address_fields):
+            UserAddress.objects.update_or_create(
+                user=user,
+                address_type='home',
+                defaults={
+                    'area':     data.get('address_area', ''),
+                    'house_no': data.get('house_no', ''),
+                    'town':     data.get('town', ''),
+                    'state':    data.get('state', ''),
+                    'pincode':  data.get('pincode', ''),
+                    'is_current': True,
+                }
+            )
+
+        # 3. Update DoctorProfile if the user has one
+        try:
+            from doctors.models import DoctorProfile
+            profile = DoctorProfile.objects.get(user=user)
+            if data.get('specialty'):
+                profile.specialty = data['specialty']
+            if data.get('qualification'):
+                profile.qualification = data['qualification']
+            if data.get('experience_years') is not None:
+                profile.experience_years = data['experience_years']
+            profile.save(update_fields=['specialty', 'qualification', 'experience_years'])
+        except Exception:
+            pass  # Not a doctor — ignore
+
+        # 4. Issue fresh JWT tokens
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'message': 'Onboarding complete! Welcome to QuickCare.',
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'user': UserSerializer(user).data,
+        }, status=status.HTTP_200_OK)
 
 
 # ═══════════════════════════════════════════════════════════════

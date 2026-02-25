@@ -132,3 +132,34 @@ class ClinicOwnerStep1Serializer(serializers.Serializer):
         if User.objects.filter(contact=value).exists():
             raise serializers.ValidationError('A user with this contact already exists.')
         return value
+
+
+class MemberCompleteOnboardingSerializer(serializers.Serializer):
+    """
+    Used by clinic-added staff (doctor / lab member / receptionist) on first login.
+
+    PUT /api/users/onboarding/member/complete/
+    Fills in personal details, home address, and (for doctors) professional info.
+    Sets is_partial_onboarding=False, is_complete_onboarding=True.
+    """
+    # Personal details
+    name = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    gender = serializers.ChoiceField(
+        choices=['male', 'female', 'others'], required=False, allow_blank=True)
+    age = serializers.IntegerField(min_value=0, max_value=150, required=False, allow_null=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    blood_group = serializers.ChoiceField(
+        choices=['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+        required=False, allow_blank=True)
+
+    # Home address (all optional)
+    address_area = serializers.CharField(required=False, allow_blank=True)
+    house_no     = serializers.CharField(required=False, allow_blank=True)
+    town         = serializers.CharField(required=False, allow_blank=True)
+    state        = serializers.CharField(required=False, allow_blank=True)
+    pincode      = serializers.CharField(required=False, allow_blank=True)
+
+    # Doctor professional details (ignored for non-doctor roles)
+    specialty        = serializers.CharField(required=False, allow_blank=True)
+    qualification    = serializers.CharField(required=False, allow_blank=True)
+    experience_years = serializers.IntegerField(min_value=0, required=False, allow_null=True)

@@ -19,6 +19,7 @@ import { PatientProfile } from './pages/patient/PatientProfile';
 
 // Doctor Routes
 import { DoctorDashboard } from './pages/doctor/DoctorDashboard';
+import { DoctorOnboarding } from './pages/doctor/DoctorOnboarding';
 import { PatientQueue } from './pages/doctor/PatientQueue';
 import { PatientDetails } from './pages/doctor/PatientDetails';
 import { PrescriptionForm } from './pages/doctor/PrescriptionForm';
@@ -50,6 +51,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register/admin" element={<HospitalAdminRegister />} />
           <Route path="/register/patient" element={<PatientRegister />} />
+          <Route path="/onboarding/member" element={<DoctorOnboarding />} />
 
           {/* Protected Routes inside MainLayout */}
           <Route element={<MainLayout />}>

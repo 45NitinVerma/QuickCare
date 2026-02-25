@@ -69,31 +69,41 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, body, loading }) {
 // ─── Add Member Modal (unified for doctor / lab) ──────────────────────────────
 function AddMemberModal({ isOpen, onClose, onAdd, role }) {
   const isDoctor = role === 'doctor';
-  const [contact, setContact] = useState('');
-  const [department, setDepartment] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [name, setName]           = useState('');
+  const [contact, setContact]     = useState('');
+  const [department, setDept]     = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState('');
+  const [infoMsg, setInfoMsg]     = useState('');  // temp-password info from backend
 
-  const reset = () => { setContact(''); setDepartment(''); setError(''); };
+  const reset = () => { setName(''); setContact(''); setDept(''); setError(''); setInfoMsg(''); };
   const handleClose = () => { reset(); onClose(); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!contact || !department) { setError('All fields are required.'); return; }
-    if (contact.length !== 10) { setError('Enter a valid 10-digit contact number.'); return; }
+    setInfoMsg('');
+    if (!contact || !department) { setError('Contact and department are required.'); return; }
+    if (contact.length !== 10)   { setError('Enter a valid 10-digit contact number.'); return; }
     setLoading(true);
     try {
-      await onAdd({
-        contact: Number(contact),
+      const result = await onAdd({
+        contact:     Number(contact),
+        name:        name.trim() || undefined,
         member_role: isDoctor ? 'doctor' : 'lab_member',
         department,
-        joined_at: new Date().toISOString().split('T')[0],
+        joined_at:   new Date().toISOString().split('T')[0],
       });
-      reset();
-      onClose();
+      // If backend auto-created a new user it returns _info with the temp password
+      if (result?._info) {
+        setInfoMsg(result._info);
+        // Don't close — show the temp-password info so admin can note it
+        setName(''); setContact(''); setDept('');
+      } else {
+        reset();
+        onClose();
+      }
     } catch (err) {
-      // Extract meaningful error from API response
       const data = err.response?.data;
       const msg =
         data?.message ||
@@ -101,7 +111,7 @@ function AddMemberModal({ isOpen, onClose, onAdd, role }) {
         data?.non_field_errors?.[0] ||
         data?.detail ||
         (typeof data === 'string' ? data : null) ||
-        'Failed to add member. Ensure the user is already registered.';
+        'Failed to add member.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -111,28 +121,56 @@ function AddMemberModal({ isOpen, onClose, onAdd, role }) {
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={isDoctor ? 'Add Doctor' : 'Add Lab Personnel'}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="p-3 rounded-xl text-sm" style={{ background: 'var(--info-light)', color: 'var(--info)', border: '1px solid var(--info)30' }}>
-          ℹ️ The user must already be registered on QuickCare with a <strong>{isDoctor ? 'Doctor' : 'Lab Member'}</strong> account.
-        </div>
 
-        <div>
-          <label style={labelStyle}>Contact Number *</label>
-          <Input
-            type="tel"
-            placeholder="e.g. 9876543210"
-            value={contact}
-            onChange={e => setContact(e.target.value.replace(/\D/g, '').slice(0, 10))}
-            required
-          />
-        </div>
+        {/* Temp-password success banner */}
+        {infoMsg && (
+          <div className="p-3 rounded-xl text-sm space-y-2"
+            style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)', border: '1px solid var(--success)30' }}>
+            <p className="font-semibold flex items-center gap-2">
+              <CheckCircle2 size={14} /> Member added successfully!
+            </p>
+            <p className="text-xs leading-relaxed opacity-90">{infoMsg}</p>
+            <p className="text-xs font-bold">⚠️ Share the temporary password with the staff member — they must log in and complete their profile.</p>
+          </div>
+        )}
 
-        <div>
-          <label style={labelStyle}>{isDoctor ? 'Department' : 'Lab Department'} *</label>
-          <select style={selectStyle} value={department} onChange={e => setDepartment(e.target.value)} required>
-            <option value="">Select department</option>
-            {(isDoctor ? DEPARTMENTS : LAB_DEPTS).map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-        </div>
+        {!infoMsg && (
+          <div className="p-3 rounded-xl text-sm"
+            style={{ background: 'var(--primary-muted)', color: 'var(--primary)', border: '1px solid rgba(37,99,235,0.2)' }}>
+            ℹ️ If the user isn't registered yet, a new account will be <strong>auto-created</strong> with a temporary password and sent to their phone.
+          </div>
+        )}
+
+        {!infoMsg && (
+          <>
+            <div>
+              <label style={labelStyle}>Full Name <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(required for new users)</span></label>
+              <input
+                type="text" placeholder="Dr. Suresh Yadav"
+                value={name} onChange={e => setName(e.target.value)}
+                style={{ ...selectStyle, height: 'auto', padding: '0.5rem 0.75rem' }}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Contact Number *</label>
+              <input
+                type="tel" placeholder="9876543210" required
+                value={contact}
+                onChange={e => setContact(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                style={{ ...selectStyle, height: 'auto', padding: '0.5rem 0.75rem' }}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>{isDoctor ? 'Department' : 'Lab Department'} *</label>
+              <select style={selectStyle} value={department} onChange={e => setDept(e.target.value)} required>
+                <option value="">Select department</option>
+                {(isDoctor ? DEPARTMENTS : LAB_DEPTS).map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+          </>
+        )}
 
         {error && (
           <div className="flex items-center gap-2 text-sm p-3 rounded-xl"
@@ -142,11 +180,15 @@ function AddMemberModal({ isOpen, onClose, onAdd, role }) {
         )}
 
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="ghost" onClick={handleClose} disabled={loading}>Cancel</Button>
-          <Button type="submit" disabled={loading} className="gap-2">
-            {loading && <Loader2 size={14} className="animate-spin" />}
-            {loading ? 'Adding...' : `Add ${isDoctor ? 'Doctor' : 'Lab Tech'}`}
+          <Button type="button" variant="ghost" onClick={handleClose} disabled={loading}>
+            {infoMsg ? 'Done' : 'Cancel'}
           </Button>
+          {!infoMsg && (
+            <Button type="submit" disabled={loading} className="gap-2">
+              {loading && <Loader2 size={14} className="animate-spin" />}
+              {loading ? 'Adding...' : `Add ${isDoctor ? 'Doctor' : 'Lab Tech'}`}
+            </Button>
+          )}
         </div>
       </form>
     </Modal>
@@ -203,10 +245,10 @@ export function ManageStaff() {
 
   // ── Add member ────────────────────────────────────────────────────────────
   const handleAdd = async (payload) => {
-    await clinicApi.addMember(clinicId, payload);
+    const { data } = await clinicApi.addMember(clinicId, payload);
     showToast('Member added successfully!');
-    // Refresh the full list to stay in sync with server state
     await loadData();
+    return data;  // pass _info back to modal if present
   };
 
   // ── Toggle active / inactive ──────────────────────────────────────────────

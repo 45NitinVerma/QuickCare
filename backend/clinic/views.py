@@ -1,10 +1,13 @@
+import random
+import string
+
 from django.utils import timezone
 from rest_framework import status, permissions, filters
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from users.models import User
+from users.models import User, Role
 from doctors.models import DoctorProfile
 from .models import Clinic, ClinicMember, ClinicTimeSlot
 from .serializers import (
@@ -126,8 +129,13 @@ class ClinicMemberListView(APIView):
 
     def post(self, request, clinic_id):
         """
-        Add a member by their registered phone contact.
-        The user must already exist in the system.
+        Add a member by contact number.
+
+        If the contact is already registered → link them directly.
+        If not → auto-create a new user with a temporary password, assign the
+                  appropriate role, and add them as a member.
+        The temporary password is printed to the console (dev) and returned in
+        the `_info` field so the admin can share it with the new staff member.
         """
         clinic, err = _get_clinic_or_403(clinic_id, request.user)
         if err:
@@ -140,15 +148,49 @@ class ClinicMemberListView(APIView):
         data = serializer.validated_data
         contact = data['contact']
         member_role = data['member_role']
+        info_msg = None   # populated when a new account is auto-created
 
-        # Look up the user by contact
+        # ── Determine the correct Role for the new member ──────
+        ROLE_MAP = {
+            'doctor':       Role.IS_DOCTOR,
+            'lab_member':   Role.IS_LAB_MEMBER,
+            'receptionist': Role.IS_RECEPTIONIST,
+        }
+
         try:
             user = User.objects.get(contact=contact)
         except User.DoesNotExist:
-            return Response(
-                {'message': f'No user found with contact {contact}. '
-                            f'Ask them to register first.'},
-                status=status.HTTP_404_NOT_FOUND
+            # Auto-create a new account for the staff member
+            name = (data.get('name') or '').strip() or str(contact)
+            temp_password = ''.join(
+                random.choices(string.ascii_letters + string.digits, k=10)
+            )
+            role_id = ROLE_MAP.get(member_role, Role.IS_DOCTOR)
+            try:
+                role_obj = Role.objects.get(id=role_id)
+            except Role.DoesNotExist:
+                return Response(
+                    {'message': f'Role configuration error: role id {role_id} not found.'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            user = User.objects.create_user(
+                contact=contact,
+                password=temp_password,
+                name=name,
+                roles=role_obj,
+                is_partial_onboarding=True,
+                is_complete_onboarding=False,
+            )
+
+            # TODO: send SMS/WhatsApp in production
+            print(f"[TEMP PASSWORD] Contact: {contact}  Temp Password: {temp_password}")
+
+            info_msg = (
+                f"New account created for {name} ({contact}). "
+                f"Temporary password: {temp_password}. "
+                f"They must log in and complete their profile at "
+                f"/api/users/onboarding/member/complete/"
             )
 
         # Prevent adding the clinic owner as a member
@@ -175,10 +217,10 @@ class ClinicMemberListView(APIView):
             existing.added_by = request.user
             existing.left_at = None
             existing.save()
-            return Response(
-                ClinicMemberSerializer(existing).data,
-                status=status.HTTP_200_OK
-            )
+            resp = ClinicMemberSerializer(existing).data
+            if info_msg:
+                resp['_info'] = info_msg
+            return Response(resp, status=status.HTTP_200_OK)
 
         # Create new membership
         member = ClinicMember.objects.create(
@@ -192,11 +234,14 @@ class ClinicMemberListView(APIView):
             added_by=request.user,
         )
 
-        # If adding a doctor, auto-create DoctorProfile if it doesn't exist
+        # Auto-create DoctorProfile for doctors
         if member_role == 'doctor':
             DoctorProfile.objects.get_or_create(user=user)
 
-        return Response(ClinicMemberSerializer(member).data, status=status.HTTP_201_CREATED)
+        resp = ClinicMemberSerializer(member).data
+        if info_msg:
+            resp['_info'] = info_msg
+        return Response(resp, status=status.HTTP_201_CREATED)
 
 
 class ClinicMemberDetailView(APIView):

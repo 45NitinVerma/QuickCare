@@ -21,6 +21,10 @@ urlpatterns = [
     path('onboarding/clinic/step1/', views.ClinicOwnerRegisterStep1.as_view(), name='clinic-owner-step1'),
     path('onboarding/clinic/step2/', views.ClinicOwnerRegisterStep2.as_view(), name='clinic-owner-step2'),
 
+    # ── Clinic-added staff: first-login profile completion ─────────
+    # Doctor / lab member / receptionist added by admin complete their profile here
+    path('onboarding/member/complete/', views.MemberCompleteOnboarding.as_view(), name='member-complete-onboarding'),
+
     # ── Current user ─────────────────────────────────────────
     path('me/', views.CurrentUser.as_view(), name='current-user'),
     path('me/medical-profile/', views.PatientMedicalProfileView.as_view(), name='medical-profile'),

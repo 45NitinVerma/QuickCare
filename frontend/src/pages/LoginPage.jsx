@@ -37,7 +37,12 @@ export function LoginPage() {
     const result = await login(contact, password);
     setIsLoading(false);
     if (result.success) {
-      navigate(roleRoutes[result.role] || '/');
+      // First-time staff (doctor/lab/receptionist) added by admin → complete their profile first
+      if (result.is_partial_onboarding) {
+        navigate('/onboarding/member');
+      } else {
+        navigate(roleRoutes[result.role] || '/');
+      }
     } else {
       setApiError(result.error);
     }
