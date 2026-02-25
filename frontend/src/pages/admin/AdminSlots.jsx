@@ -216,10 +216,10 @@ export function AdminSlots() {
   const handleSaveSlot = async (slotData, slotId) => {
     try {
       if (slotId) {
-         await api.put(`/clinics/${clinicId}/slots/${slotId}/`, slotData);
+         await clinicApi.updateSlot(clinicId, slotId, slotData);
          showToast('Slot updated successfully!');
       } else {
-         await api.post(`/clinics/${clinicId}/slots/`, slotData);
+         await clinicApi.addSlot(clinicId, slotData);
          showToast('Slot added successfully!');
       }
       await loadData();
@@ -232,7 +232,7 @@ export function AdminSlots() {
     if (!window.confirm('Are you sure you want to deactivate this slot?')) return;
     setRemovingId(slotId);
     try {
-       await api.delete(`/clinics/${clinicId}/slots/${slotId}/`);
+       await clinicApi.deleteSlot(clinicId, slotId);
        showToast('Slot deactivated successfully!');
        await loadData();
     } catch (err) {

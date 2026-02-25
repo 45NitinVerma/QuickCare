@@ -116,7 +116,20 @@ class PatientStep2Serializer(serializers.Serializer):
 class PatientMedicalProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatientMedicalProfile
-        exclude = ['user']
+        fields = [
+            'allergies', 'chronic_conditions', 'current_medications',
+            'past_surgeries', 'family_history', 'emergency_contact_name',
+            'emergency_contact_number', 'height_cm', 'weight_kg',
+            'updated_at',
+        ]
+        read_only_fields = ['updated_at']
+
+
+class UpdateCurrentUserSerializer(serializers.ModelSerializer):
+    """Used by PUT /api/users/me/ — prevents users from changing their own role or onboarding flags."""
+    class Meta:
+        model = User
+        fields = ['name', 'email', 'age', 'gender', 'blood_group', 'avatar']
 
 
 class ClinicOwnerStep1Serializer(serializers.Serializer):

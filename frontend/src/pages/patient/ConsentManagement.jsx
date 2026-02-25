@@ -3,7 +3,8 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
-import { Shield, Check, X, Clock, Settings, AlertTriangle, Loader2 } from 'lucide-react';
+import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../components/ui/Table';
+import { Shield, Check, X, Clock, Settings, AlertTriangle, Loader2, Activity } from 'lucide-react';
 import { documentApi } from '../../services/api';
 
 export function ConsentManagement() {
@@ -12,6 +13,11 @@ export function ConsentManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+
+  // Logs states
+  const [activeTab, setActiveTab] = useState('consents');
+  const [logs, setLogs] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   const loadConsents = useCallback(async () => {
     setLoading(true);
@@ -25,11 +31,29 @@ export function ConsentManagement() {
     }
   }, []);
 
+  const loadLogs = useCallback(async () => {
+    setLoadingLogs(true);
+    try {
+      const { data } = await documentApi.accessLog();
+      setLogs(Array.isArray(data) ? data : (data.results || []));
+    } catch {
+      setLogs([]);
+    } finally {
+      setLoadingLogs(false);
+    }
+  }, []);
+
   useEffect(() => { loadConsents(); }, [loadConsents]);
 
+  useEffect(() => {
+    if (activeTab === 'logs' && logs.length === 0) {
+      loadLogs();
+    }
+  }, [activeTab, loadLogs, logs.length]);
+
   const handleAction = async (id, action) => {
-    // API action: 'grant' | 'reject' | 'revoke'
-    const apiAction = action === 'approve' ? 'grant' : action === 'deny' ? 'reject' : 'revoke';
+    // API action: 'granted' | 'rejected' | 'revoked'
+    const apiAction = action === 'approve' ? 'granted' : action === 'deny' ? 'rejected' : 'revoked';
     setActionLoading(id);
     try {
       const { data } = await documentApi.consentAction(id, apiAction);
@@ -51,8 +75,8 @@ export function ConsentManagement() {
   const pendingConsents = consents.filter(c => c.status === 'pending');
   const grantedConsents = consents.filter(c => c.status === 'granted');
 
-  const getDoctorName = (c) => c.doctor?.user?.name || c.doctor_name || 'Doctor';
-  const getDocTitle = (c) => c.document?.title || c.document_title || 'Medical Document';
+  const getDoctorName = (c) => c.doctor_name || c.doctor?.user?.name || 'Doctor';
+  const getDocTitle = (c) => c.document_title || c.document?.title || 'Medical Document';
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -65,7 +89,23 @@ export function ConsentManagement() {
         </div>
       </div>
 
-      {loading ? (
+      <div className="flex gap-6 border-b" style={{ borderColor: 'var(--border)' }}>
+        <button 
+          onClick={() => setActiveTab('consents')} 
+          className={`pb-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'consents' ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+        >
+          Consent Requests
+        </button>
+        <button 
+          onClick={() => setActiveTab('logs')} 
+          className={`pb-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'logs' ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+        >
+          Access Audit Logs
+        </button>
+      </div>
+
+      {activeTab === 'consents' && (
+        loading ? (
         <div className="flex items-center justify-center gap-2 py-16" style={{ color: 'var(--text-muted)' }}>
           <Loader2 size={22} className="animate-spin" /> Loading consents…
         </div>
@@ -169,6 +209,64 @@ export function ConsentManagement() {
             </div>
           </div>
         </div>
+      )
+      )}
+
+      {activeTab === 'logs' && (
+        loadingLogs ? (
+          <div className="flex items-center justify-center gap-2 py-16" style={{ color: 'var(--text-muted)' }}>
+            <Loader2 size={22} className="animate-spin" /> Loading audit logs…
+          </div>
+        ) : (
+          <Card>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableHeader>Document</TableHeader>
+                  <TableHeader>Accessed By</TableHeader>
+                  <TableHeader>Date & Time</TableHeader>
+                  <TableHeader>IP Address</TableHeader>
+                </TableRow>
+              </TableHead>
+              <tbody>
+                {logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan="4">
+                      <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
+                        <Activity className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm">No access logs found.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  logs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell>
+                        <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                          {log.document_title || log.document?.title || `Doc ID: ${log.document}`}
+                        </span>
+                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>ID: {log.document?.id || log.document}</div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {log.accessed_by_name || log.accessed_by?.name || 'System / User'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                          {new Date(log.accessed_at).toLocaleString('en-IN')}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{log.ip_address || 'Unknown IP'}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          </Card>
+        )
       )}
 
       {/* Approval Confirmation Modal */}

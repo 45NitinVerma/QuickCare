@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent } from '../../components/ui/Card';
-import { User, Shield, Key, Mail, Globe, Clock, Star, Calendar, Building2, FileText, Phone, MapPin, Loader2, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { User, Shield, Key, Mail, Globe, Clock, Star, Calendar, Building2, FileText, Phone, MapPin, Loader2, CheckCircle2, AlertTriangle, X, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { clinicApi } from '../../services/api';
+import { clinicApi, userApi } from '../../services/api';
 
 const disabledInputStyle = {
   width: '100%', borderRadius: '0.75rem',
@@ -22,31 +22,45 @@ const labelStyle = {
 export function AdminProfile() {
   const { user } = useAuth();
   
-  const [clinic, setClinic] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({});
-  const [toast, setToast] = useState(null);
+  const [clinic,    setClinic]   = useState(null);
+  const [loading,   setLoading]  = useState(true);
+  const [saving,    setSaving]   = useState(false);
+  const [formData,  setFormData] = useState({});
+  const [toast,     setToast]    = useState(null);
+  // Personal
+  const [personalForm, setPersonalForm] = useState({ name: '', email: '' });
+  const [savingMe,     setSavingMe]     = useState(false);
+  // Password
+  const [pwForm,   setPwForm]    = useState({ password: '', confirm: '' });
+  const [showPw,   setShowPw]    = useState(false);
+  const [pwSaving, setPwSaving]  = useState(false);
 
   const showToast = (msg, type = 'success') => setToast({ msg, type });
 
   const loadClinic = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await clinicApi.myClinics();
-      if (data && data.length > 0) {
-        setClinic(data[0]);
-        setFormData({
-          name: data[0].name || '',
-          phone: data[0].phone || '',
-          city: data[0].city || '',
-          state: data[0].state || '',
-          address: data[0].address || '',
-          website: data[0].website || '',
-        });
+      const [meRes, clinicRes] = await Promise.allSettled([userApi.getMe(), clinicApi.myClinics()]);
+      if (meRes.status === 'fulfilled') {
+        const u = meRes.value.data;
+        setPersonalForm({ name: u.name || '', email: u.email || '' });
+      }
+      if (clinicRes.status === 'fulfilled') {
+        const data = clinicRes.value.data;
+        if (data && data.length > 0) {
+          setClinic(data[0]);
+          setFormData({
+            name:    data[0].name    || '',
+            phone:   data[0].phone   || '',
+            city:    data[0].city    || '',
+            state:   data[0].state   || '',
+            address: data[0].address || '',
+            website: data[0].website || '',
+          });
+        }
       }
     } catch (err) {
-      showToast('Failed to load clinic information', 'error');
+      showToast('Failed to load profile', 'error');
     } finally {
       setLoading(false);
     }
@@ -72,6 +86,33 @@ export function AdminProfile() {
     }
   };
 
+  const handleSavePersonal = async () => {
+    setSavingMe(true);
+    try {
+      await userApi.updateMe({ name: personalForm.name || undefined, email: personalForm.email || undefined });
+      showToast('Personal info saved!');
+    } catch {
+      showToast('Failed to save personal info', 'error');
+    } finally {
+      setSavingMe(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!pwForm.password || pwForm.password.length < 6) { showToast('Min 6 characters', 'error'); return; }
+    if (pwForm.password !== pwForm.confirm) { showToast('Passwords do not match', 'error'); return; }
+    setPwSaving(true);
+    try {
+      await userApi.changePassword(pwForm.password);
+      setPwForm({ password: '', confirm: '' });
+      showToast('Password changed!');
+    } catch {
+      showToast('Failed to change password', 'error');
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
   // Fall back to mock hospital data
   const hospital = user?.hospitalInfo || {
     name: 'Apollo QuickCare Hospital',
@@ -88,10 +129,10 @@ export function AdminProfile() {
   };
 
   const personalFields = [
-    { icon: User,   label: 'Full Name',        val: user?.name || '' },
-    { icon: Key,    label: 'System Clearance', val: 'Level 5 (All Systems)' },
-    { icon: Mail,   label: 'Email Address',    val: user?.email || `${user?.contact}@quickcare.com` },
-    { icon: Globe,  label: 'Access Region',    val: 'All India — All Branches' },
+    { icon: User,   label: 'Full Name',        editable: true,  field: 'name' },
+    { icon: Mail,   label: 'Email Address',    editable: true,  field: 'email' },
+    { icon: Key,    label: 'System Clearance', editable: false, val: 'Level 5 (All Systems)' },
+    { icon: Globe,  label: 'Access Region',    editable: false, val: 'All India — All Branches' },
   ];
 
   const hospitalFields = [
@@ -192,15 +233,26 @@ export function AdminProfile() {
             <CardContent className="p-6 space-y-5">
               <h3 className="font-semibold text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Account Details</h3>
               <div className="grid md:grid-cols-2 gap-5">
-                {personalFields.map(({ icon: Icon, label, val }) => (
+                {personalFields.map(({ icon: Icon, label, editable, field, val }) => (
                   <div key={label}>
                     <label style={labelStyle}>{label}</label>
                     <div className="relative">
                       <Icon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-                      <input disabled defaultValue={val} style={disabledInputStyle} />
+                      <input
+                        disabled={!editable}
+                        value={editable ? (personalForm[field] || '') : (val || '')}
+                        onChange={editable ? e => setPersonalForm(f => ({ ...f, [field]: e.target.value })) : undefined}
+                        style={{ ...disabledInputStyle, paddingLeft: '2.5rem', ...(editable ? { background: 'var(--bg-secondary)', color: 'var(--text-primary)' } : {}) }}
+                        className={editable ? 'flex h-10 w-full rounded-xl text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]' : ''}
+                      />
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handleSavePersonal} disabled={savingMe} className="gap-2">
+                  {savingMe ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Save Personal
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -269,7 +321,36 @@ export function AdminProfile() {
             </CardContent>
           </Card>
 
-          {/* Permissions */}
+          {/* Change Password */}
+          <Card>
+            <CardContent className="p-6 space-y-5">
+              <h3 className="font-semibold text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Change Password</h3>
+              <div className="grid md:grid-cols-2 gap-5">
+                <div>
+                  <label style={labelStyle}>New Password</label>
+                  <div className="relative">
+                    <input className="flex h-10 w-full rounded-xl px-3 pr-10 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border)' }}
+                      type={showPw ? 'text' : 'password'} value={pwForm.password} onChange={e => setPwForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 6 characters" />
+                    <button type="button" onClick={() => setShowPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
+                      {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Confirm Password</label>
+                  <input className="flex h-10 w-full rounded-xl px-3 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border)' }}
+                    type="password" value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} placeholder="Re-enter" />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handleChangePassword} disabled={pwSaving} className="gap-2">
+                  {pwSaving ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />} Change Password
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardContent className="p-6 space-y-4">
               <h3 className="font-semibold text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Access Permissions</h3>

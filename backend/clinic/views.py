@@ -234,9 +234,13 @@ class ClinicMemberListView(APIView):
             added_by=request.user,
         )
 
-        # Auto-create DoctorProfile for doctors
+        # Auto-create/update DoctorProfile for doctors; mark as verified & active
         if member_role == 'doctor':
-            DoctorProfile.objects.get_or_create(user=user)
+            profile, created = DoctorProfile.objects.get_or_create(user=user)
+            if not profile.is_verified or not profile.is_active:
+                profile.is_verified = True
+                profile.is_active = True
+                profile.save(update_fields=['is_verified', 'is_active'])
 
         resp = ClinicMemberSerializer(member).data
         if info_msg:

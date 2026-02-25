@@ -16,7 +16,7 @@ from .serializers import (
     UserSerializer, UserCreateSerializer, UserAddressSerializer,
     PatientStep1Serializer, PatientStep2Serializer,
     PatientMedicalProfileSerializer, ClinicOwnerStep1Serializer,
-    MemberCompleteOnboardingSerializer,
+    MemberCompleteOnboardingSerializer, UpdateCurrentUserSerializer,
 )
 
 User = get_user_model()
@@ -482,7 +482,8 @@ class CurrentUser(APIView):
         return Response(UserSerializer(request.user).data)
 
     def put(self, request):
-        serializer = UserCreateSerializer(request.user, data=request.data, partial=True)
+        # Only allow safe personal fields — role & onboarding flags cannot be self-modified
+        serializer = UpdateCurrentUserSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(UserSerializer(request.user).data, status=status.HTTP_200_OK)
@@ -595,7 +596,9 @@ class PatientMedicalProfileView(APIView):
     def get(self, request):
         profile = PatientMedicalProfile.objects.filter(user=request.user).first()
         if not profile:
-            return Response({'message': 'No medical profile found.'}, status=status.HTTP_404_NOT_FOUND)
+            # Return 200 with empty/null fields instead of 404 so the frontend
+            # can display a blank form rather than hitting an error.
+            return Response(PatientMedicalProfileSerializer(PatientMedicalProfile()).data)
         return Response(PatientMedicalProfileSerializer(profile).data)
 
     def put(self, request):

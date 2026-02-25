@@ -67,7 +67,11 @@ export const AuthProvider = ({ children }) => {
    * Used by PatientRegister & HospitalAdminRegister to set the user.
    */
   const setUserFromTokens = useCallback((access, refresh, userData) => {
-    setTokens(access, refresh);
+    // Only overwrite tokens if real values are passed
+    // (PatientRegister step3 already stored tokens after step2 OTP verification)
+    if (access && refresh) {
+      setTokens(access, refresh);
+    }
     setUser(mapUser(userData));
   }, []);
 

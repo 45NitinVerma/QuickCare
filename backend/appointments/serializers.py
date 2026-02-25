@@ -17,15 +17,23 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
 class AppointmentCreateSerializer(serializers.ModelSerializer):
     """Minimal write serializer — used for booking (POST)."""
+    # Accept 'notes' from the frontend and store it as 'reason'
+    notes = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
     class Meta:
         model = Appointment
         fields = [
             'doctor', 'appointment_date', 'appointment_time',
-            'appointment_type', 'mode', 'reason',
+            'appointment_type', 'mode', 'reason', 'notes',
         ]
 
     def validate(self, data):
+        # Allow frontend to send 'notes' as patient reason
+        if 'notes' in data and not data.get('reason'):
+            data['reason'] = data.pop('notes')
+        elif 'notes' in data:
+            data.pop('notes')
+
         doctor = data['doctor']
         appt_date = data['appointment_date']
         appt_time = data['appointment_time']
@@ -43,8 +51,8 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 
 
 class AppointmentUpdateSerializer(serializers.ModelSerializer):
-    """Doctor/patient can update status, notes, cancellation."""
+    """Doctor/patient can update status, notes, reason, and cancellation."""
 
     class Meta:
         model = Appointment
-        fields = ['status', 'notes', 'cancelled_by', 'cancellation_reason', 'is_paid', 'fee_charged']
+        fields = ['status', 'notes', 'reason', 'cancelled_by', 'cancellation_reason', 'is_paid', 'fee_charged']

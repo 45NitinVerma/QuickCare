@@ -46,14 +46,19 @@ export function DoctorDashboard() {
     setLoading(true);
     try {
       const [apptRes, consentRes] = await Promise.allSettled([
-        appointmentApi.doctorList({ date: todayStr }),
+        appointmentApi.doctorList(),
         documentApi.doctorConsents({ status: 'granted' }),
       ]);
       if (apptRes.status === 'fulfilled') {
         const data = apptRes.value.data;
         const list = Array.isArray(data) ? data : (data.results || []);
-        setTodaysAppointments(list);
+        
+        // Populate all appointments for calendar and stats
         setAllAppointments(list);
+        
+        // Filter out today's appointments for the daily schedule table
+        const todaysList = list.filter(a => a.appointment_date === todayStr);
+        setTodaysAppointments(todaysList);
       }
       if (consentRes.status === 'fulfilled') {
         const data = consentRes.value.data;

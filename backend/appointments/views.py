@@ -57,7 +57,7 @@ class PatientAppointmentListView(APIView):
             appt_type = serializer.validated_data.get('appointment_type', 'first_visit')
             fee = doctor.first_visit_fee if appt_type == 'first_visit' else doctor.follow_up_fee
 
-            appointment = serializer.save(patient=request.user, fee_charged=fee)
+            appointment = serializer.save(patient=request.user, fee_charged=fee, status='confirmed')
             return Response(AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -97,6 +97,10 @@ class PatientAppointmentDetailView(APIView):
             serializer.save()
             return Response(AppointmentSerializer(appt).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Allow PATCH as alias for PUT (frontend uses PATCH for cancel)
+    def patch(self, request, pk):
+        return self.put(request, pk)
 
 
 # ─────────────────────────────────────────────
@@ -174,3 +178,7 @@ class DoctorAppointmentDetailView(APIView):
             serializer.save()
             return Response(AppointmentSerializer(appt).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Allow PATCH as alias for PUT (frontend uses PATCH for status updates)
+    def patch(self, request, pk):
+        return self.put(request, pk)

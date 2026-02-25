@@ -16,7 +16,7 @@ export function BookAppointment() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    clinicId: '', clinicName: '', doctorId: '', doctorProfileId: '', date: '', time: '', type: 'first_visit', notes: ''
+    clinicId: '', clinicName: '', doctorId: '', doctorProfileId: '', doctorName: '', date: '', time: '', type: 'first_visit', notes: ''
   });
 
   const [clinics, setClinics]   = useState([]);
@@ -28,7 +28,12 @@ export function BookAppointment() {
 
   // Load clinics on mount
   useEffect(() => {
-    clinicApi.publicList().then(r => setClinics(r.data || [])).catch(() => {});
+    clinicApi.publicList()
+      .then(r => {
+        const data = r.data;
+        setClinics(Array.isArray(data) ? data : (data?.results || []));
+      })
+      .catch(() => setClinics([]));
   }, []);
 
   // Load doctors when clinic selected
@@ -36,10 +41,15 @@ export function BookAppointment() {
     if (!formData.clinicId) { setDoctors([]); return; }
     setLoading(true);
     doctorApi.list({ clinic: formData.clinicId })
-      .then(r => setDoctors(r.data || []))
-      .catch(() => {})
+      .then(r => {
+        const data = r.data;
+        setDoctors(Array.isArray(data) ? data : (data?.results || []));
+      })
+      .catch(() => setDoctors([]))
       .finally(() => setLoading(false));
   }, [formData.clinicId]);
+
+  const [availableDates, setAvailableDates] = useState([]);
 
   // Load slots when doctor + date selected
   useEffect(() => {
@@ -50,6 +60,53 @@ export function BookAppointment() {
       .catch(() => setSlots([]))
       .finally(() => setLoading(false));
   }, [formData.doctorProfileId, formData.date, formData.clinicId]);
+
+  // Load doctor's general availability to calculate available dates
+  useEffect(() => {
+    if (!formData.doctorProfileId || !formData.clinicId) {
+      setAvailableDates([]);
+      return;
+    }
+    
+    // Fetch the weekly schedule for this doctor at this clinic
+    doctorApi.availability(formData.doctorProfileId, { clinic_id: formData.clinicId })
+      .then(res => {
+        const schedule = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+        if (schedule.length === 0) {
+          setAvailableDates([]);
+          return;
+        }
+
+        const availableDaysOfWeek = new Set(schedule.map(s => s.day.toLowerCase()));
+        
+        // Generate next 30 days
+        const dates = [];
+        const today = new Date();
+        const daysMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        
+        for (let i = 0; i < 30; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i);
+          const dayName = daysMap[d.getDay()];
+          
+          if (availableDaysOfWeek.has(dayName)) {
+            const isoDate = d.toISOString().split('T')[0];
+            const displayDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            dates.push({ iso: isoDate, display: displayDate });
+          }
+        }
+        
+        setAvailableDates(dates);
+        // Auto-select the first available date if not already set or invalid
+        if (dates.length > 0) {
+          setFormData(f => ({ ...f, date: dates[0].iso, time: '' }));
+        }
+      })
+      .catch(err => {
+        console.error("Failed to load doctor availability", err);
+        setAvailableDates([]);
+      });
+  }, [formData.doctorProfileId, formData.clinicId]);
 
   const handleNext = () => setStep(s => Math.min(s + 1, 5));
   const handleBack = () => setStep(s => Math.max(s - 1, 1));
@@ -172,7 +229,7 @@ export function BookAppointment() {
                       const isSelected = formData.doctorProfileId === doctor.id;
                       return (
                         <div key={doctor.id}
-                          onClick={() => setFormData(f => ({ ...f, doctorProfileId: doctor.id, doctorId: doctor.user?.id, time: '' }))}
+                          onClick={() => setFormData(f => ({ ...f, doctorProfileId: doctor.id, doctorId: doctor.user?.id, doctorName: doctor.user?.name || `Doctor #${doctor.id}`, time: '' }))}
                           className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all"
                           style={{ border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)', background: isSelected ? 'var(--primary-muted)' : 'var(--bg-secondary)' }}>
                           <div className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg shrink-0"
@@ -204,12 +261,32 @@ export function BookAppointment() {
                 <h2 className="text-xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Select Date & Time</h2>
                 <div className="grid md:grid-cols-2 gap-8">
                   <div>
-                    <label style={labelStyle}>Preferred Date</label>
-                    <input type="date" value={formData.date}
-                      min={new Date().toISOString().split('T')[0]}
-                      onChange={e => setFormData(f => ({ ...f, date: e.target.value, time: '' }))}
-                      className="w-full h-11 rounded-xl px-3 text-sm focus:outline-none focus:ring-2"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+                    <label style={{ ...labelStyle, marginBottom: '0.75rem' }}>Select Date</label>
+                    {availableDates.length === 0 ? (
+                       <p className="text-sm border rounded-xl p-4 text-center" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+                         No available dates found for this doctor at this clinic.
+                       </p>
+                    ) : (
+                      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                        {availableDates.map(d => (
+                          <button
+                            key={d.iso}
+                            type="button"
+                            onClick={() => setFormData(f => ({ ...f, date: d.iso, time: '' }))}
+                            className="flex-col items-center justify-center min-w-[5.5rem] py-2.5 rounded-xl border transition-all shrink-0"
+                            style={{
+                              background: formData.date === d.iso ? 'var(--primary)' : 'var(--bg-secondary)',
+                              borderColor: formData.date === d.iso ? 'var(--primary)' : 'var(--border)',
+                              color: formData.date === d.iso ? '#fff' : 'var(--text-primary)',
+                              boxShadow: formData.date === d.iso ? '0 4px 12px rgba(var(--primary-rgb), 0.25)' : 'none'
+                            }}
+                          >
+                            <span className="block text-xs font-medium opacity-80 mb-0.5">{d.display.split(',')[0]}</span>
+                            <span className="block text-sm font-bold">{d.display.split(',')[1].trim()}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label style={labelStyle}>Available Slots</label>
@@ -266,7 +343,7 @@ export function BookAppointment() {
                   {/* Summary */}
                   <div className="p-4 rounded-xl border space-y-2" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}>
                     <h3 className="font-semibold text-sm pb-2 mb-1 border-b" style={{ color: 'var(--text-primary)', borderColor: 'var(--border)' }}>Booking Summary</h3>
-                    {[['Clinic', formData.clinicName], ['Doctor ID', formData.doctorProfileId], ['Date & Time', `${formData.date} at ${formData.time}`], ['Type', formData.type]].map(([label, val]) => (
+                    {[['Clinic', formData.clinicName], ['Doctor', formData.doctorName || formData.doctorProfileId], ['Date & Time', `${formData.date} at ${formData.time}`], ['Type', formData.type.replace('_', ' ')]].map(([label, val]) => (
                       <p key={label} className="text-sm flex justify-between">
                         <span style={{ color: 'var(--text-muted)' }}>{label}:</span>
                         <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{val}</span>
@@ -300,7 +377,7 @@ export function BookAppointment() {
                   </p>
                   <div className="flex justify-center gap-4">
                     <Button variant="secondary" onClick={() => navigate('/patient')}>Go to Dashboard</Button>
-                    <Button onClick={() => { setStep(1); setFormData({ clinicId: '', clinicName: '', doctorId: '', doctorProfileId: '', date: '', time: '', type: 'first_visit', notes: '' }); setBooked(false); }}>
+                    <Button onClick={() => { setStep(1); setFormData({ clinicId: '', clinicName: '', doctorId: '', doctorProfileId: '', doctorName: '', date: '', time: '', type: 'first_visit', notes: '' }); setBooked(false); }}>
                       Book Another
                     </Button>
                   </div>

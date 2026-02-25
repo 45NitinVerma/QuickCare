@@ -22,8 +22,7 @@ export function DoctorPrescriptions() {
   const [selectedPatient, setSelectedPatient] = useState('');
   const [medicines, setMedicines] = useState([{ name: '', dosage: '', duration: '', notes: '' }]);
 
-  const patients = mockUsers.filter(u => u.role === 'Patient');
-  const pastPrescriptions = mockPrescriptions.filter(p => p.doctorId === user.id);
+  // Removed undefined mock data references
 
   const addMedicine = () => setMedicines([...medicines, { name: '', dosage: '', duration: '', notes: '' }]);
   const removeMedicine = idx => setMedicines(medicines.filter((_, i) => i !== idx));

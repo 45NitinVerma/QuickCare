@@ -868,7 +868,6 @@ PATCH /api/appointments/doctor/<id>/     🔒 (Doctor)
 { "status": "confirmed" }
 ```
 `status` options: `pending` | `confirmed` | `completed` | `cancelled` | `no_show`
-
 ---
 
 ## 📄 Documents — `/api/documents/`

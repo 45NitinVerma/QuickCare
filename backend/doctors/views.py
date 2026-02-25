@@ -21,9 +21,9 @@ from appointments.models import Appointment
 # ─────────────────────────────────────────────
 
 class DoctorFilter(df_filters.FilterSet):
-    city = df_filters.CharFilter(field_name='clinic_members__clinic__city', lookup_expr='icontains')
+    city = df_filters.CharFilter(field_name='user__clinic_memberships__clinic__city', lookup_expr='icontains')
     specialty = df_filters.CharFilter(field_name='specialty', lookup_expr='icontains')
-    clinic = df_filters.UUIDFilter(field_name='clinic_members__clinic__id')
+    clinic = df_filters.UUIDFilter(field_name='user__clinic_memberships__clinic__id')
     min_fee = df_filters.NumberFilter(field_name='first_visit_fee', lookup_expr='gte')
     max_fee = df_filters.NumberFilter(field_name='first_visit_fee', lookup_expr='lte')
     video = df_filters.BooleanFilter(field_name='offers_video_consultation')
@@ -58,7 +58,6 @@ class DoctorListView(ListAPIView):
 
         return DoctorProfile.objects.filter(
             is_active=True,
-            is_verified=True,
             user_id__in=active_doctor_user_ids,
         ).select_related('user').prefetch_related('availability').distinct()
 
@@ -306,45 +305,6 @@ class DoctorLeaveView(APIView):
         leave.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-
-# ─────────────────────────────────────────────
-# Filters
-# ─────────────────────────────────────────────
-
-class DoctorFilter(df_filters.FilterSet):
-    city = df_filters.CharFilter(field_name='city', lookup_expr='icontains')
-    specialty = df_filters.CharFilter(field_name='specialty', lookup_expr='icontains')
-    min_fee = df_filters.NumberFilter(field_name='first_visit_fee', lookup_expr='gte')
-    max_fee = df_filters.NumberFilter(field_name='first_visit_fee', lookup_expr='lte')
-    video = df_filters.BooleanFilter(field_name='offers_video_consultation')
-
-    class Meta:
-        model = DoctorProfile
-        fields = ['city', 'specialty', 'min_fee', 'max_fee', 'video']
-
-
-# ─────────────────────────────────────────────
-# Doctor Profile
-# ─────────────────────────────────────────────
-
-class DoctorListView(ListAPIView):
-    """
-    Public: list all active, verified doctors.
-    Supports filtering by city, specialty, fee range, video consultation.
-    Supports search by doctor name.
-    """
-    permission_classes = [permissions.AllowAny]
-    serializer_class = DoctorProfileSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_class = DoctorFilter
-    search_fields = ['user__name', 'clinic_name', 'city']
-    ordering_fields = ['first_visit_fee', 'experience_years']
-
-    def get_queryset(self):
-        return DoctorProfile.objects.filter(
-            is_active=True, is_verified=True
-        ).select_related('user').prefetch_related('availability')
 
 
 class DoctorDetailView(APIView):

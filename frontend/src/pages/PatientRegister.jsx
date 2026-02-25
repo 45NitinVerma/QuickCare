@@ -134,6 +134,7 @@ export function PatientRegister() {
   // OTP state
   const [otp, setOtp]             = useState(['', '', '', '', '', '']);
   const otpRefs                   = useRef([]);
+  const step2TokenRef             = useRef(null);  // holds { access, refresh } from step 2
   const [countdown, setCountdown] = useState(30);
   const [canResend, setCanResend] = useState(false);
 
@@ -242,6 +243,8 @@ export function PatientRegister() {
       });
       // Store JWT tokens so step3 PUT will be authorized
       setTokens(data.access, data.refresh);
+      // Also keep them for setUserFromTokens after step3 completes
+      step2TokenRef.current = { access: data.access, refresh: data.refresh };
       // Advance to profile completion step
       setStep(2);
     } catch (err) {
@@ -281,7 +284,8 @@ export function PatientRegister() {
         emergency_contact_name:   form.emergency_contact_name || undefined,
         emergency_contact_number: form.emergency_contact_number ? Number(form.emergency_contact_number) : undefined,
       });
-      setUserFromTokens(undefined, undefined, { ...data.user, is_complete_onboarding: true });
+      const tokens = step2TokenRef.current;
+      setUserFromTokens(tokens?.access, tokens?.refresh, { ...data.user, is_complete_onboarding: true });
       setShowAbha(true);
     } catch (err) {
       const msg = err.response?.data?.message || 'Profile save failed. Please try again.';

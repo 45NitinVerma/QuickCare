@@ -100,14 +100,14 @@ export const authApi = {
   // Patient registration
   patientStep1: (data) => api.post('/users/onboarding/patient/step1/', data),
   patientStep2: (data) => api.post('/users/onboarding/patient/step2/', data),
-  patientStep3: (data) => api.put('/users/onboarding/patient/step3/', data),
+  patientStep3: (data) => api.patch('/users/onboarding/patient/step3/', data),
 
   // Clinic owner registration
   clinicStep1: (data)  => api.post('/users/onboarding/clinic/step1/', data),
   clinicStep2: (data)  => api.post('/users/onboarding/clinic/step2/', data),
 
   // Staff (doctor / lab / receptionist) first-login profile completion
-  memberComplete: (data) => api.put('/users/onboarding/member/complete/', data),
+  memberComplete: (data) => api.patch('/users/onboarding/member/complete/', data),
 };
 
 // Clinics
@@ -123,6 +123,9 @@ export const clinicApi = {
   updateMember:    (id, mid, data)    => api.put(`/clinics/${id}/members/${mid}/`, data),
   removeMember:    (id, mid)          => api.delete(`/clinics/${id}/members/${mid}/`),
   slots:           (id)               => api.get(`/clinics/${id}/slots/`),
+  addSlot:         (id, data)         => api.post(`/clinics/${id}/slots/`, data),
+  updateSlot:      (id, sid, data)    => api.put(`/clinics/${id}/slots/${sid}/`, data),
+  deleteSlot:      (id, sid)          => api.delete(`/clinics/${id}/slots/${sid}/`),
 };
 
 // Doctors
@@ -131,8 +134,10 @@ export const doctorApi = {
   detail:         (id)     => api.get(`/doctors/${id}/`),
   me:             ()       => api.get('/doctors/me/'),
   updateMe:       (data)   => api.put('/doctors/me/', data),
-  availability:   (id)     => api.get(`/doctors/${id}/availability/`),
-  slots:          (id, params) => api.get(`/doctors/${id}/availability/slots/`, { params }),
+  availability:       (id, params) => api.get(`/doctors/${id}/availability/`, { params }),
+  createAvailability: (id, data) => api.post(`/doctors/${id}/availability/`, data),
+  deleteAvailability: (id, slotId) => api.delete(`/doctors/${id}/availability/?slot_id=${slotId}`),
+  slots:              (id, params) => api.get(`/doctors/${id}/availability/slots/`, { params }),
 };
 
 // Appointments
@@ -159,4 +164,20 @@ export const documentApi = {
   doctorConsents: (params)  => api.get('/documents/consent/doctor/', { params }),
   requestConsent: (data)    => api.post('/documents/consent/request/', data),
   accessLog:      ()        => api.get('/documents/access-log/'),
+};
+
+// User — me, medical profile, addresses, password
+export const userApi = {
+  getMe:          ()        => api.get('/users/me/'),
+  updateMe:       (data)    => api.put('/users/me/', data),
+  getMedical:     ()        => api.get('/users/me/medical-profile/'),
+  updateMedical:  (data)    => api.put('/users/me/medical-profile/', data),
+  changePassword: (pw)      => api.put('/users/password/change/', { password: pw }),
+
+  // Address
+  listAddresses:   ()       => api.get('/users/address/'),
+  createAddress:   (data)   => api.post('/users/address/', data),
+  getAddress:      (id)     => api.get(`/users/address/${id}/`),
+  updateAddress:   (id, d)  => api.put(`/users/address/${id}/`, d),
+  deleteAddress:   (id)     => api.delete(`/users/address/${id}/`),
 };

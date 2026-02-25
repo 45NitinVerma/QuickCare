@@ -21,19 +21,20 @@ export function PatientQueue() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
 
-  const todayStr = new Date().toISOString().split('T')[0];
-
   const loadQueue = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await appointmentApi.doctorList({ date: todayStr });
-      setAppointments(Array.isArray(data) ? data : (data.results || []));
+      const { data } = await appointmentApi.doctorList();
+      const list = Array.isArray(data) ? data : (data.results || []);
+      // Auto-migrate legacy 'pending' appointments to 'confirmed' for UI consistency
+      const mappedList = list.map(a => a.status === 'pending' ? { ...a, status: 'confirmed' } : a);
+      setAppointments(mappedList);
     } catch {
       setAppointments([]);
     } finally {
       setLoading(false);
     }
-  }, [todayStr]);
+  }, []);
 
   useEffect(() => { loadQueue(); }, [loadQueue]);
 
@@ -50,7 +51,8 @@ export function PatientQueue() {
   };
 
   const filteredQueue = appointments.filter(appt => {
-    const name = appt.patient?.name || appt.patientName || '';
+    // AppointmentSerializer serializes patient with UserSerializer → name is at appt.patient.name
+    const name = appt.patient?.name || '';
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
@@ -72,7 +74,7 @@ export function PatientQueue() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Patient Queue</h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-            {loading ? 'Loading…' : `${appointments.length} appointment${appointments.length !== 1 ? 's' : ''} today`}
+            {loading ? 'Loading…' : `Displaying all ${appointments.length} appointments`}
           </p>
         </div>
         <Button variant="secondary" className="gap-2 shrink-0" onClick={loadQueue}>
@@ -180,7 +182,7 @@ export function PatientQueue() {
             <Calendar className="w-12 h-12 mx-auto mb-4 opacity-30" style={{ color: 'var(--text-muted)' }} />
             <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Queue is empty</h3>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {searchTerm ? 'No patients match your search.' : 'No appointments scheduled for today.'}
+              {searchTerm ? 'No patients match your search.' : 'No appointments scheduled.'}
             </p>
           </motion.div>
         )}
