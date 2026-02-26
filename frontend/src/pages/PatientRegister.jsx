@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { authApi, setTokens } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  HeartPulse, ArrowRight, ArrowLeft, CheckCircle2, User, Phone,
+  HeartPulse, ArrowLeft, CheckCircle2, User, Phone,
   Shield, Sun, Moon, X, AlertCircle, Heart, Pill, ChevronDown, Key
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -85,39 +85,6 @@ function Accordion({ title, icon: Icon, children }) {
   );
 }
 
-function AbhaModal({ name, onClose }) {
-  const abhaId = `ABHA-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
-  return (
-    <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
-      <motion.div className="relative w-full max-w-sm" initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', damping: 18 }}>
-        <div className="rounded-3xl p-6 text-center shadow-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 8px 24px rgba(16,185,129,0.4)' }}>
-            <Shield size={30} className="text-white" />
-          </div>
-          <h2 className="text-xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>Registration Complete!</h2>
-          <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>Your QuickCare account is ready</p>
-          <div className="rounded-2xl p-5 mb-5 text-left relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%)' }}>
-            <div className="flex items-center gap-2 mb-4">
-              <HeartPulse size={16} className="text-white" />
-              <span className="text-xs font-bold text-white/80 uppercase tracking-widest">Ayushman Bharat Health Account</span>
-            </div>
-            <p className="text-2xl font-black tracking-widest text-white mb-2">{abhaId}</p>
-            <p className="text-sm text-white/90 font-semibold">{name}</p>
-            <p className="text-xs text-white/60 mt-1">QuickCare Health Network · Verified</p>
-          </div>
-          <button onClick={onClose}
-            className="w-full h-11 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
-            Go to My Dashboard <ArrowRight size={14} className="inline ml-1" />
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function PatientRegister() {
@@ -127,7 +94,6 @@ export function PatientRegister() {
 
   const [step, setStep]         = useState(0);
   const [errors, setErrors]     = useState({});
-  const [showAbha, setShowAbha] = useState(false);
   const [apiError, setApiError] = useState('');
   const [loading, setLoading]   = useState(false);
 
@@ -286,7 +252,7 @@ export function PatientRegister() {
       });
       const tokens = step2TokenRef.current;
       setUserFromTokens(tokens?.access, tokens?.refresh, { ...data.user, is_complete_onboarding: true });
-      setShowAbha(true);
+      navigate('/patient');
     } catch (err) {
       const msg = err.response?.data?.message || 'Profile save failed. Please try again.';
       setApiError(msg);
@@ -345,7 +311,7 @@ export function PatientRegister() {
               <Heart size={26} className="text-white" />
             </div>
             <h1 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Create Patient Account</h1>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Quick 3-step setup · Get your ABHA ID instantly</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Quick 3-step setup</p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -603,10 +569,7 @@ export function PatientRegister() {
         </div>
       </div>
 
-      {/* ABHA Modal */}
-      <AnimatePresence>
-        {showAbha && <AbhaModal name={form.name} onClose={() => { setShowAbha(false); navigate('/patient'); }} />}
-      </AnimatePresence>
+
     </div>
   );
 }

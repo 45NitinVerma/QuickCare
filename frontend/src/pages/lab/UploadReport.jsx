@@ -20,13 +20,13 @@ const selectStyle = {
 export function UploadReport() {
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [form, setForm] = useState({ patientId: '', type: 'Pathology', notes: '' });
+  const [form, setForm] = useState({ contact: '', type: 'Pathology', notes: '' });
   const [uploadState, setUploadState] = useState('idle'); // idle | generating | done
   const [aiSummary, setAiSummary] = useState('');
 
   const simulateUpload = (e) => {
     e.preventDefault();
-    if (!file || !form.patientId) return;
+    if (!file || !form.contact) return;
     setUploadState('generating');
     setTimeout(() => {
       setAiSummary('Elevated Mean Corpuscular Volume (MCV) noted. White blood cell count within normal ranges. Trace proteinuria observed. Suggested clinical correlation with attending physician.');
@@ -64,13 +64,13 @@ export function UploadReport() {
           <Card>
             <CardContent className="p-6">
               <form onSubmit={simulateUpload} className="space-y-5">
-                {/* Patient ID */}
+                {/* Patient Contact Number */}
                 <div>
-                  <label style={labelStyle}>Patient ID</label>
+                  <label style={labelStyle}>Patient Contact Number</label>
                   <Input
-                    placeholder="e.g. p1"
-                    value={form.patientId}
-                    onChange={e => setForm({ ...form, patientId: e.target.value })}
+                    placeholder="e.g. 9876543210"
+                    value={form.contact}
+                    onChange={e => setForm({ ...form, contact: e.target.value })}
                     required
                     disabled={uploadState !== 'idle'}
                   />
@@ -230,7 +230,7 @@ export function UploadReport() {
                     </div>
                   </div>
 
-                  <Button variant="secondary" className="w-full" onClick={() => { setUploadState('idle'); setFile(null); setForm({ patientId: '', type: 'Pathology', notes: '' }); }}>
+                  <Button variant="secondary" className="w-full" onClick={() => { setUploadState('idle'); setFile(null); setForm({ contact: '', type: 'Pathology', notes: '' }); }}>
                     Upload Another Report
                   </Button>
                 </div>

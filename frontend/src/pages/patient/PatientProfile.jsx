@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  User, Mail, Phone, MapPin, Shield, Activity, Heart, Pill,
-  AlertCircle, ChevronDown, CreditCard, Lock, CheckCircle2, X, Loader2, Eye, EyeOff,
+  User, Mail, Phone, MapPin, Activity, Heart, Pill,
+  AlertCircle, ChevronDown, Lock, CheckCircle2, X, Loader2, Eye, EyeOff,
 } from 'lucide-react';
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -26,24 +26,7 @@ const INDIAN_STATES = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function AbhaCard({ name }) {
-  const abhaId = 'ABHA-4592-8842-1023';
-  return (
-    <div className="rounded-2xl p-5 relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%)' }}>
-      <div className="flex items-center gap-2 mb-3">
-        <CreditCard size={14} className="text-white/80" />
-        <span className="text-xs font-bold text-white/80 uppercase tracking-widest">Ayushman Bharat Health Account</span>
-      </div>
-      <p className="text-xl font-black tracking-widest text-white mb-2">{abhaId}</p>
-      <p className="text-sm font-semibold text-white/90">{name}</p>
-      <div className="flex items-center gap-2 mt-2">
-        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-        <p className="text-xs text-white/70">Verified · QuickCare Health Network</p>
-      </div>
-    </div>
-  );
-}
+
 
 function Accordion({ title, icon: Icon, children }) {
   const [open, setOpen] = useState(false);
@@ -268,12 +251,7 @@ export function PatientProfile() {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2 text-sm"><Shield size={15} style={{ color: 'var(--primary)' }} /> ABHA Identity</CardTitle></CardHeader>
-            <CardContent className="p-4 pt-0">
-              <AbhaCard name={profileForm.name || user?.name} />
-            </CardContent>
-          </Card>
+
         </div>
 
         {/* Right */}
