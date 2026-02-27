@@ -34,7 +34,7 @@ export function LoginPage() {
     const contact = formData.get('contact');
     const password = formData.get('password');
     setIsLoading(true);
-    const result = await login(contact, password);
+    const result = await login(contact, password, selectedRole);
     setIsLoading(false);
     if (result.success) {
       // First-time staff (doctor/lab/receptionist) added by admin → complete their profile first

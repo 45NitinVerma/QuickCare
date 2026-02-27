@@ -42,11 +42,16 @@ export const AuthProvider = ({ children }) => {
    * Login with contact number + password.
    * Returns { success, role, error }
    */
-  const login = useCallback(async (contact, password) => {
+  const login = useCallback(async (contact, password, expectedRole = null) => {
     try {
       const { data } = await authApi.login(contact, password);
-      setTokens(data.access, data.refresh);
       const u = mapUser(data.user);
+
+      if (expectedRole && u.role !== expectedRole) {
+        return { success: false, error: `Account is not registered as ${expectedRole}.` };
+      }
+
+      setTokens(data.access, data.refresh);
       setUser(u);
       return { success: true, role: u.role, is_partial_onboarding: u.is_partial_onboarding };
     } catch (err) {
