@@ -13,7 +13,7 @@ export const Input = forwardRef(({ className, type = "text", error, label, ...pr
         type={type}
         className={cn(
           "flex h-10 w-full rounded-xl px-3 py-2 text-sm",
-          "bg-white dark:bg-[#1E293B]",
+          "bg-[var(--bg-secondary)]",
           "text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
           "border border-[var(--border)]",
           "transition-all duration-200",

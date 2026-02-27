@@ -5,9 +5,79 @@ import { Table, TableHead, TableRow, TableHeader, TableCell } from '../../compon
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
-import { FileText, Download, ChevronDown, ChevronUp, Sparkles, Loader2, Upload, Trash2 } from 'lucide-react';
+import { FileText, Download, ChevronDown, ChevronUp, Sparkles, Loader2, Upload, Trash2, Eye, X, ExternalLink } from 'lucide-react';
 import { documentApi } from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
+
+/* ─── View Report Modal ────────────────────────────────────── */
+function ViewReportModal({ isOpen, onClose, fileUrl, filename }) {
+  if (!isOpen) return null;
+  const isImage = fileUrl && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(fileUrl.split('?')[0]);
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            className="absolute inset-0"
+            style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="relative w-full max-w-4xl flex flex-col rounded-2xl overflow-hidden"
+            style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xl)', height: '88vh' }}
+            initial={{ opacity: 0, scale: 0.93, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.93, y: 24 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+          >
+            {/* Header */}
+            <div className="shrink-0 flex items-center gap-3 px-5 py-4 border-b"
+              style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: 'var(--primary-muted)', color: 'var(--primary)' }}>
+                <FileText size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{filename || 'Report'}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Document Preview</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a href={fileUrl} download target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                  style={{ background: 'var(--primary-muted)', color: 'var(--primary)', border: '1px solid var(--border)' }}>
+                  <Download size={13} /> Download
+                </a>
+                <a href={fileUrl} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                  style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                  <ExternalLink size={13} /> Open
+                </a>
+                <button onClick={onClose}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            {/* Viewer */}
+            <div className="flex-1 overflow-hidden bg-neutral-900">
+              {isImage ? (
+                <div className="w-full h-full flex items-center justify-center p-6 overflow-auto">
+                  <img src={fileUrl} alt={filename} className="max-w-full max-h-full object-contain rounded-lg shadow-xl" />
+                </div>
+              ) : (
+                <iframe src={fileUrl} title={filename} className="w-full h-full" style={{ border: 'none' }} />
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
 
 const DOC_TYPE_LABEL = {
   prescription: 'Prescription',
@@ -29,9 +99,13 @@ export function PatientReports() {
   const [uploading, setUploading] = useState(false);
   const [uploadData, setUploadData] = useState({ title: '', document_type: 'lab_report', description: '' });
   const [uploadFile, setUploadFile] = useState(null);
+  const [uploadError, setUploadError] = useState('');
 
   // Delete state
   const [deletingId, setDeletingId] = useState(null);
+
+  // View modal
+  const [viewModal, setViewModal] = useState({ open: false, fileUrl: '', filename: '' });
 
   const loadDocs = useCallback(async () => {
     setLoading(true);
@@ -49,9 +123,25 @@ export function PatientReports() {
 
   const toggleExpand = (id) => setExpandedId(expandedId === id ? null : id);
 
+  const handleFileChange = (file) => {
+    setUploadError('');
+    if (!file) { setUploadFile(null); return; }
+    if (file.type !== 'application/pdf') {
+      setUploadError('Only PDF files are allowed.');
+      setUploadFile(null);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('File size must not exceed 5 MB.');
+      setUploadFile(null);
+      return;
+    }
+    setUploadFile(file);
+  };
+
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
-    if (!uploadFile) return;
+    if (!uploadFile || uploadError) return;
     setUploading(true);
     try {
       const formData = new FormData();
@@ -61,7 +151,7 @@ export function PatientReports() {
       if (uploadData.description) {
         formData.append('description', uploadData.description);
       }
-      
+
       await documentApi.upload(formData);
       setIsUploadModalOpen(false);
       setUploadData({ title: '', document_type: 'lab_report', description: '' });
@@ -167,10 +257,16 @@ export function PatientReports() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         {doc.file && (
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Download"
-                            onClick={() => window.open(doc.file, '_blank')}>
-                            <Download size={15} />
-                          </Button>
+                          <>
+                            <Button variant="secondary" size="sm" className="h-8 gap-1.5"
+                              onClick={() => setViewModal({ open: true, fileUrl: doc.file, filename: doc.title || doc.file.split('/').pop() })}>
+                              <Eye size={13} /> View
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Download"
+                              onClick={() => window.open(doc.file, '_blank')}>
+                              <Download size={15} />
+                            </Button>
+                          </>
                         )}
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Delete" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(doc.id)} disabled={deletingId === doc.id}>
                           {deletingId === doc.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
@@ -231,21 +327,25 @@ export function PatientReports() {
       <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} title="Upload Medical Document">
         <form onSubmit={handleUploadSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Document File</label>
-            <input 
-              type="file" 
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Document File <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(PDF only, max 5 MB)</span></label>
+            <input
+              type="file"
+              accept="application/pdf"
               required
-              onChange={e => setUploadFile(e.target.files[0])}
+              onChange={e => handleFileChange(e.target.files[0])}
               className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-[var(--primary-muted)] file:text-[var(--primary)] hover:file:opacity-90"
             />
+            {uploadError && (
+              <p className="mt-1.5 text-xs font-medium" style={{ color: 'var(--danger)' }}>{uploadError}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Title</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               required
               value={uploadData.title}
-              onChange={e => setUploadData({...uploadData, title: e.target.value})}
+              onChange={e => setUploadData({ ...uploadData, title: e.target.value })}
               placeholder="e.g. Complete Blood Count"
               className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2"
               style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
@@ -255,7 +355,7 @@ export function PatientReports() {
             <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Document Type</label>
             <select
               value={uploadData.document_type}
-              onChange={e => setUploadData({...uploadData, document_type: e.target.value})}
+              onChange={e => setUploadData({ ...uploadData, document_type: e.target.value })}
               className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2"
               style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
             >
@@ -266,10 +366,10 @@ export function PatientReports() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Description (Optional)</label>
-            <textarea 
+            <textarea
               rows={3}
               value={uploadData.description}
-              onChange={e => setUploadData({...uploadData, description: e.target.value})}
+              onChange={e => setUploadData({ ...uploadData, description: e.target.value })}
               placeholder="Any additional details..."
               className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2"
               style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
@@ -285,6 +385,13 @@ export function PatientReports() {
         </form>
       </Modal>
 
+      {/* View Report Modal */}
+      <ViewReportModal
+        isOpen={viewModal.open}
+        onClose={() => setViewModal(prev => ({ ...prev, open: false }))}
+        fileUrl={viewModal.fileUrl}
+        filename={viewModal.filename}
+      />
     </div>
   );
 }

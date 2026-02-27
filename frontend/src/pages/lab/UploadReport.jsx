@@ -19,14 +19,29 @@ const selectStyle = {
 
 export function UploadReport() {
   const [file, setFile] = useState(null);
+  const [fileError, setFileError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [form, setForm] = useState({ contact: '', type: 'Pathology', notes: '' });
   const [uploadState, setUploadState] = useState('idle'); // idle | generating | done
   const [aiSummary, setAiSummary] = useState('');
 
+  const validateAndSetFile = (f) => {
+    setFileError('');
+    if (!f) return;
+    if (f.type !== 'application/pdf') {
+      setFileError('Only PDF files are allowed.');
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      setFileError('File size must not exceed 5 MB.');
+      return;
+    }
+    setFile(f);
+  };
+
   const simulateUpload = (e) => {
     e.preventDefault();
-    if (!file || !form.contact) return;
+    if (!file || fileError || !form.contact) return;
     setUploadState('generating');
     setTimeout(() => {
       setAiSummary('Elevated Mean Corpuscular Volume (MCV) noted. White blood cell count within normal ranges. Trace proteinuria observed. Suggested clinical correlation with attending physician.');
@@ -38,7 +53,7 @@ export function UploadReport() {
     e.preventDefault();
     setIsDragging(false);
     const dropped = e.dataTransfer.files[0];
-    if (dropped) setFile(dropped);
+    if (dropped) validateAndSetFile(dropped);
   };
 
   return (
@@ -94,7 +109,7 @@ export function UploadReport() {
 
                 {/* File upload */}
                 <div>
-                  <label style={labelStyle}>Report File (PDF / Image)</label>
+                  <label style={labelStyle}>Report File <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(PDF only, max 5 MB)</span></label>
                   {file ? (
                     <div className="flex items-center justify-between p-3 rounded-xl border text-sm"
                       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}>
@@ -129,14 +144,18 @@ export function UploadReport() {
                       <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                         Drag & drop or <span style={{ color: 'var(--primary)' }}>click to browse</span>
                       </p>
-                      <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>PDF, JPG, PNG up to 10MB</p>
+                      <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>PDF only · max 5 MB</p>
                       <input
                         type="file"
+                        accept="application/pdf"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        onChange={e => setFile(e.target.files[0])}
+                        onChange={e => validateAndSetFile(e.target.files[0])}
                         required
                       />
                     </div>
+                  )}
+                  {fileError && (
+                    <p className="mt-2 text-xs font-medium" style={{ color: 'var(--danger)' }}>{fileError}</p>
                   )}
                 </div>
 

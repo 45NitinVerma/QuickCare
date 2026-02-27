@@ -20,32 +20,33 @@ export function AIAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!inputValue.trim() || isTyping) return;
 
-    const newMessage = { id: Date.now(), sender: 'user', text: inputValue };
+    const userText = inputValue.trim();
+    const newMessage = { id: Date.now(), sender: 'user', text: userText };
     setMessages(prev => [...prev, newMessage]);
     setInputValue('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const lower = newMessage.text.toLowerCase();
-      let aiResponse = "I can help with appointments, lab results, prescriptions, or general health queries. Could you give a bit more detail?";
-
-      if (lower.includes('headache') || lower.includes('pain')) {
-        aiResponse = "I hear you. If the pain is severe, sudden, or accompanied by numbness or vision changes, please visit the ER immediately. Would you like help scheduling a General Physician consultation?";
-      } else if (lower.includes('report') || lower.includes('lab') || lower.includes('result')) {
-        aiResponse = "I can summarize your most recent lab results! Your latest 'Complete Blood Count' from 5 days ago shows all major markers within normal limits. Would you like to view the full AI Summary?";
-      } else if (lower.includes('appointment') || lower.includes('book')) {
-        aiResponse = "You can book a new appointment easily via the 'Book Appointment' section in the sidebar. Which department are you looking for?";
-      } else if (lower.includes('prescription') || lower.includes('medicine')) {
-        aiResponse = "Your active prescriptions include Aspirin (81mg daily) and Atorvastatin (20mg nightly). Reminders can be configured in your profile settings.";
-      }
-
+    try {
+      const baseUrl = import.meta.env.VITE_AI_URL?.replace(/\/$/, '');
+      const url = `${baseUrl}/agent/chat?message=${encodeURIComponent(userText)}`;
+      const res = await fetch(url, { headers: { accept: 'application/json' } });
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      const aiResponse = data?.response?.answer || "I received your message but couldn't find an answer. Please try again.";
       setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: aiResponse }]);
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        sender: 'ai',
+        text: "Sorry, I'm having trouble connecting to the AI service right now. Please try again later."
+      }]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -53,11 +54,10 @@ export function AIAssistant() {
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`relative h-14 w-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 active:scale-95 ${
-          isOpen
-            ? 'bg-[var(--card-elevated)] hover:bg-[var(--bg-secondary)]'
-            : 'bg-gradient-to-br from-[var(--primary)] to-indigo-600 hover:shadow-[var(--shadow-glow-primary)] hover:scale-105'
-        }`}
+        className={`relative h-14 w-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 active:scale-95 ${isOpen
+          ? 'bg-[var(--card-elevated)] hover:bg-[var(--bg-secondary)]'
+          : 'bg-gradient-to-br from-[var(--primary)] to-indigo-600 hover:shadow-[var(--shadow-glow-primary)] hover:scale-105'
+          }`}
         style={{ boxShadow: isOpen ? 'var(--shadow-md)' : 'var(--shadow-glow-primary)' }}
       >
         <span style={{ color: isOpen ? 'var(--text-primary)' : 'white' }}>

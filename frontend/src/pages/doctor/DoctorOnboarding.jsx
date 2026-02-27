@@ -13,25 +13,25 @@ import { Sun, Moon } from 'lucide-react';
 // ─── Constants ───────────────────────────────────────────────
 const SPECIALTIES = [
   { value: 'general_medicine', label: 'General Medicine' },
-  { value: 'cardiology',       label: 'Cardiology' },
-  { value: 'dermatology',      label: 'Dermatology' },
-  { value: 'neurology',        label: 'Neurology' },
-  { value: 'orthopedics',      label: 'Orthopedics' },
-  { value: 'pediatrics',       label: 'Pediatrics' },
-  { value: 'gynecology',       label: 'Gynecology' },
-  { value: 'ophthalmology',    label: 'Ophthalmology' },
-  { value: 'ent',              label: 'ENT' },
-  { value: 'psychiatry',       label: 'Psychiatry' },
-  { value: 'dentistry',        label: 'Dentistry' },
-  { value: 'radiology',        label: 'Radiology' },
-  { value: 'pathology',        label: 'Pathology' },
-  { value: 'oncology',         label: 'Oncology' },
-  { value: 'urology',          label: 'Urology' },
-  { value: 'other',            label: 'Other' },
+  { value: 'cardiology', label: 'Cardiology' },
+  { value: 'dermatology', label: 'Dermatology' },
+  { value: 'neurology', label: 'Neurology' },
+  { value: 'orthopedics', label: 'Orthopedics' },
+  { value: 'pediatrics', label: 'Pediatrics' },
+  { value: 'gynecology', label: 'Gynecology' },
+  { value: 'ophthalmology', label: 'Ophthalmology' },
+  { value: 'ent', label: 'ENT' },
+  { value: 'psychiatry', label: 'Psychiatry' },
+  { value: 'dentistry', label: 'Dentistry' },
+  { value: 'radiology', label: 'Radiology' },
+  { value: 'pathology', label: 'Pathology' },
+  { value: 'oncology', label: 'Oncology' },
+  { value: 'urology', label: 'Urology' },
+  { value: 'other', label: 'Other' },
 ];
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const GENDERS      = ['male', 'female', 'others'];
+const GENDERS = ['male', 'female', 'others'];
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -43,9 +43,9 @@ const INDIAN_STATES = [
 ];
 
 // ─── Styles ───────────────────────────────────────────────────
-const inputCls   = 'flex h-10 w-full rounded-xl px-3 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]';
+const inputCls = 'flex h-10 w-full rounded-xl px-3 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]';
 const inputStyle = { background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border)' };
-const labelCls   = 'block text-sm font-medium mb-1.5';
+const labelCls = 'block text-sm font-medium mb-1.5';
 const labelStyle = { color: 'var(--text-secondary)' };
 const selectStyle = {
   ...inputStyle,
@@ -91,40 +91,40 @@ function SectionHead({ icon: Icon, title }) {
 
 // ─── Main Component ───────────────────────────────────────────
 export function DoctorOnboarding() {
-  const navigate       = useNavigate();
+  const navigate = useNavigate();
   const { setUserFromTokens } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [apiError,  setApiError]  = useState('');
-  const [errors,    setErrors]    = useState({});
-  const [done,      setDone]      = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [done, setDone] = useState(false);
 
   const [form, setForm] = useState({
     // Personal
-    name:          '',
-    gender:        '',
-    age:           '',
-    email:         '',
-    blood_group:   '',
+    name: '',
+    gender: '',
+    age: '',
+    email: '',
+    blood_group: '',
     // Professional (doctor)
-    specialty:        '',
-    qualification:    '',
+    specialty: '',
+    qualification: '',
     experience_years: '',
     // Address
-    house_no:     '',
+    house_no: '',
     address_area: '',
-    town:         '',
-    state:        '',
-    pincode:      '',
+    town: '',
+    state: '',
+    pincode: '',
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   // ── Validation ───────────────────────────────────────────────
   const validate = () => {
     const e = {};
-    if (!form.name.trim())     e.name   = 'Full name is required';
-    if (!form.gender)          e.gender = 'Please select gender';
+    if (!form.name.trim()) e.name = 'Full name is required';
+    if (!form.gender) e.gender = 'Please select gender';
     if (!form.age || isNaN(form.age) || Number(form.age) < 18)
       e.age = 'Enter a valid age (18+)';
     if (form.email && !/\S+@\S+\.\S+/.test(form.email))
@@ -144,19 +144,19 @@ export function DoctorOnboarding() {
     setIsLoading(true);
     try {
       const payload = {
-        name:             form.name.trim(),
-        gender:           form.gender || undefined,
-        age:              form.age ? Number(form.age) : undefined,
-        email:            form.email || undefined,
-        blood_group:      form.blood_group || undefined,
-        specialty:        form.specialty || undefined,
-        qualification:    form.qualification || undefined,
+        name: form.name.trim(),
+        gender: form.gender || undefined,
+        age: form.age ? Number(form.age) : undefined,
+        email: form.email || undefined,
+        blood_group: form.blood_group || undefined,
+        specialty: form.specialty || undefined,
+        qualification: form.qualification || undefined,
         experience_years: form.experience_years ? Number(form.experience_years) : undefined,
-        address_area:     form.address_area || undefined,
-        house_no:         form.house_no || undefined,
-        town:             form.town || undefined,
-        state:            form.state || undefined,
-        pincode:          form.pincode || undefined,
+        address_area: form.address_area || undefined,
+        house_no: form.house_no || undefined,
+        town: form.town || undefined,
+        state: form.state || undefined,
+        pincode: form.pincode || undefined,
       };
 
       const { data } = await authApi.memberComplete(payload);
@@ -206,9 +206,7 @@ export function DoctorOnboarding() {
       {/* Top Bar */}
       <div className="flex items-center justify-between px-6 py-4 relative z-10">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--primary)' }}>
-            <HeartPulse className="text-white" size={18} />
-          </div>
+          <img src="/logo.jpeg" alt="QuickCare" className="w-8 h-8 rounded-lg object-cover" />
           <span className="font-bold text-sm">Quick<span style={{ color: 'var(--primary)' }}>Care</span></span>
         </div>
         <div className="flex items-center gap-3">
