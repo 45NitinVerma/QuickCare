@@ -14,10 +14,10 @@ import { useTheme } from '../context/ThemeContext';
 const STEPS = ['Account Setup', 'Verify OTP', 'Clinic Details'];
 
 const CLINIC_TYPES = [
-  { value: 'clinic',            label: 'Clinic' },
-  { value: 'hospital',          label: 'Hospital' },
+  { value: 'clinic', label: 'Clinic' },
+  { value: 'hospital', label: 'Hospital' },
   { value: 'diagnostic_center', label: 'Diagnostic Centre' },
-  { value: 'polyclinic',        label: 'Polyclinic' },
+  { value: 'polyclinic', label: 'Polyclinic' },
 ];
 
 const DAYS = [
@@ -45,9 +45,9 @@ const DEFAULT_SLOTS = [
 ];
 
 // ─── Style helpers ─────────────────────────────────────────────
-const inputCls   = 'flex h-10 w-full rounded-xl px-3 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]';
+const inputCls = 'flex h-10 w-full rounded-xl px-3 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]';
 const inputStyle = { background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border)' };
-const labelCls   = 'block text-sm font-medium mb-1.5';
+const labelCls = 'block text-sm font-medium mb-1.5';
 const labelStyle = { color: 'var(--text-secondary)' };
 const selectStyle = {
   ...inputStyle,
@@ -140,21 +140,21 @@ export function HospitalAdminRegister() {
   const { setUserFromTokens } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
-  const [step, setStep]           = useState(0);
-  const [toast, setToast]         = useState(null);
+  const [step, setStep] = useState(0);
+  const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors]       = useState({});
-  const [apiError, setApiError]   = useState('');
-  const [showPwd, setShowPwd]     = useState(false);
+  const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
 
   // ── Step 1 form ──
   const [form, setForm] = useState({ name: '', contact: '', password: '' });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   // ── Step 2 OTP ──
-  const [otp, setOtp]             = useState(['', '', '', '', '', '']);
-  const otpRefs                   = useRef([]);
-  const [otpSent, setOtpSent]     = useState(false);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const otpRefs = useRef([]);
+  const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [canResend, setCanResend] = useState(false);
 
@@ -178,9 +178,9 @@ export function HospitalAdminRegister() {
   // ─── Step 1 submit → send OTP ───────────────────────────────
   const handleStep1 = async () => {
     const e = {};
-    if (!form.name.trim())               e.name     = 'Full name is required';
-    if (!/^\d{10}$/.test(form.contact))  e.contact  = 'Enter a valid 10-digit mobile number';
-    if (form.password.length < 6)        e.password = 'Password must be at least 6 characters';
+    if (!form.name.trim()) e.name = 'Full name is required';
+    if (!/^\d{10}$/.test(form.contact)) e.contact = 'Enter a valid 10-digit mobile number';
+    if (form.password.length < 6) e.password = 'Password must be at least 6 characters';
     setErrors(e);
     if (Object.keys(e).length) return;
 
@@ -188,8 +188,8 @@ export function HospitalAdminRegister() {
     setIsLoading(true);
     try {
       await authApi.clinicStep1({
-        contact:  Number(form.contact),
-        name:     form.name.trim(),
+        contact: Number(form.contact),
+        name: form.name.trim(),
         password: form.password,
       });
       setOtpSent(true);
@@ -214,8 +214,8 @@ export function HospitalAdminRegister() {
     setIsLoading(true);
     try {
       await authApi.clinicStep1({
-        contact:  Number(form.contact),
-        name:     form.name.trim(),
+        contact: Number(form.contact),
+        name: form.name.trim(),
         password: form.password,
       });
       setCanResend(false);
@@ -257,7 +257,7 @@ export function HospitalAdminRegister() {
     try {
       const { data } = await authApi.clinicStep2({
         contact: Number(form.contact),
-        otp:     code,
+        otp: code,
       });
       // Store tokens immediately so the authenticated step-3 request works
       setTokens(data.access, data.refresh);
@@ -289,15 +289,15 @@ export function HospitalAdminRegister() {
   // ─── Step 3 submit → create clinic ───────────────────────────
   const handleStep3 = async () => {
     const e = {};
-    if (!clinic.name.trim())          e.clinicName  = 'Clinic name is required';
+    if (!clinic.name.trim()) e.clinicName = 'Clinic name is required';
     if (!clinic.registration_number.trim()) e.regNumber = 'Registration number is required';
-    if (!clinic.state)                e.state       = 'Please select a state';
-    if (!clinic.city.trim())          e.city        = 'City is required';
-    if (!clinic.address.trim())       e.address     = 'Address is required';
-    if (!/^\d{6}$/.test(clinic.pincode)) e.pincode  = 'Enter a valid 6-digit pincode';
+    if (!clinic.state) e.state = 'Please select a state';
+    if (!clinic.city.trim()) e.city = 'City is required';
+    if (!clinic.address.trim()) e.address = 'Address is required';
+    if (!/^\d{6}$/.test(clinic.pincode)) e.pincode = 'Enter a valid 6-digit pincode';
     if (!/^\d{10,12}$/.test(clinic.phone.replace(/[-\s]/g, ''))) e.phone = 'Enter a valid phone number';
     if (clinic.email && !/\S+@\S+\.\S+/.test(clinic.email)) e.email = 'Enter a valid email';
-    if (slots.length === 0)           e.slots       = 'Add at least one time slot';
+    if (slots.length === 0) e.slots = 'Add at least one time slot';
     // Validate slot times
     for (let i = 0; i < slots.length; i++) {
       if (slots[i].start_time >= slots[i].end_time) {
@@ -312,16 +312,16 @@ export function HospitalAdminRegister() {
     setIsLoading(true);
     try {
       await clinicApi.onboardStep3({
-        name:                clinic.name.trim(),
-        clinic_type:         clinic.clinic_type,
-        phone:               clinic.phone,
-        email:               clinic.email || undefined,
-        address:             clinic.address.trim(),
-        city:                clinic.city.trim(),
-        state:               clinic.state,
-        pincode:             clinic.pincode,
+        name: clinic.name.trim(),
+        clinic_type: clinic.clinic_type,
+        phone: clinic.phone,
+        email: clinic.email || undefined,
+        address: clinic.address.trim(),
+        city: clinic.city.trim(),
+        state: clinic.state,
+        pincode: clinic.pincode,
         registration_number: clinic.registration_number.trim(),
-        time_slots:          slots,
+        time_slots: slots,
       });
 
       // Update AuthContext so ProtectedRoute sees a logged-in Admin user
@@ -351,9 +351,7 @@ export function HospitalAdminRegister() {
       {/* Top Bar */}
       <div className="flex items-center justify-between px-6 py-4 relative z-10">
         <Link to="/login" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--primary)' }}>
-            <HeartPulse className="text-white" size={18} />
-          </div>
+          <img src="/logo.jpeg" alt="QuickCare" className="w-8 h-8 rounded-lg object-cover" />
           <span className="font-bold text-sm">Quick<span style={{ color: 'var(--primary)' }}>Care</span></span>
         </Link>
         <div className="flex items-center gap-3">

@@ -7,10 +7,10 @@ import { useTheme } from '../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const roles = [
-  { id: 'Patient',  icon: User,        label: 'Patient',       desc: 'Access your health records', color: 'text-blue-600',    bg: 'bg-blue-50 dark:bg-blue-900/20',    border: 'border-blue-500',   canRegister: true,  registerPath: '/register/patient', registerLabel: 'Register as Patient', registerIcon: UserPlus },
-  { id: 'Doctor',   icon: Stethoscope, label: 'Doctor',        desc: 'Manage your patient queue',  color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-500', canRegister: false },
-  { id: 'Lab',      icon: TestTube,    label: 'Lab Personnel', desc: 'Upload & analyze reports',   color: 'text-violet-600',  bg: 'bg-violet-50 dark:bg-violet-900/20',  border: 'border-violet-500', canRegister: false },
-  { id: 'Admin',    icon: Settings,    label: 'Administrator', desc: 'Manage hospital operations', color: 'text-rose-600',    bg: 'bg-rose-50 dark:bg-rose-900/20',      border: 'border-rose-500',   canRegister: true,  registerPath: '/register/admin',   registerLabel: 'Register Hospital', registerIcon: Building2 },
+  { id: 'Patient', icon: User, label: 'Patient', desc: 'Access your health records', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-500', canRegister: true, registerPath: '/register/patient', registerLabel: 'Register as Patient', registerIcon: UserPlus },
+  { id: 'Doctor', icon: Stethoscope, label: 'Doctor', desc: 'Manage your patient queue', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-500', canRegister: false },
+  { id: 'Lab', icon: TestTube, label: 'Lab Personnel', desc: 'Upload & analyze reports', color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-900/20', border: 'border-violet-500', canRegister: false },
+  { id: 'Admin', icon: Settings, label: 'Administrator', desc: 'Manage hospital operations', color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-500', canRegister: true, registerPath: '/register/admin', registerLabel: 'Register Hospital', registerIcon: Building2 },
 ];
 
 const roleRoutes = { Patient: '/patient', Doctor: '/doctor', Lab: '/lab', Admin: '/admin' };
@@ -18,10 +18,10 @@ const roleRoutes = { Patient: '/patient', Doctor: '/doctor', Lab: '/lab', Admin:
 export function LoginPage() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPwd, setShowPwd]   = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
   const [apiError, setApiError] = useState('');
   const { login } = useAuth();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
 
   const selectedRoleData = roles.find(r => r.id === selectedRole);
@@ -31,7 +31,7 @@ export function LoginPage() {
     if (!selectedRole) return;
     setApiError('');
     const formData = new FormData(e.target);
-    const contact  = formData.get('contact');
+    const contact = formData.get('contact');
     const password = formData.get('password');
     setIsLoading(true);
     const result = await login(contact, password);
@@ -59,9 +59,7 @@ export function LoginPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4 relative z-10">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--primary)' }}>
-            <HeartPulse className="text-white w-4.5 h-4.5" size={18} />
-          </div>
+          <img src="/logo.jpeg" alt="QuickCare" className="w-8 h-8 rounded-lg object-cover" />
           <span className="font-bold text-sm">Quick<span style={{ color: 'var(--primary)' }}>Care</span></span>
         </Link>
         <button onClick={toggleTheme} className="p-2 rounded-xl hover:bg-[var(--bg-secondary)] transition-all" style={{ color: 'var(--text-muted)' }}>
@@ -74,10 +72,7 @@ export function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <motion.div className="text-center mb-8" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-[var(--shadow-glow-primary)]"
-              style={{ background: 'var(--primary)' }}>
-              <Sparkles size={28} className="text-white" />
-            </div>
+            <img src="/logo.jpeg" alt="QuickCare" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-[var(--shadow-glow-primary)]" />
             <h1 className="text-2xl font-black tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>Welcome back</h1>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Sign in to access your QuickCare dashboard.</p>
           </motion.div>

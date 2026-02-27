@@ -1,15 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { AIAssistant } from '../components/ui/AIAssistant';
 import { ToastProvider } from '../components/ui/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { appointmentApi, documentApi } from '../services/api';
 import {
   HeartPulse, Menu, Bell, Search, LogOut, User as UserIcon,
   Calendar, FileText, Activity, Users, X, ClipboardList,
   Moon, Sun, Shield, ChevronRight, LayoutDashboard, Microscope,
-  Pill, BarChart3
+  Pill, BarChart3, Loader2
 } from 'lucide-react';
 
 export function MainLayout() {
@@ -21,6 +22,12 @@ export function MainLayout() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [bellAnimating, setBellAnimating] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notifsLoading, setNotifsLoading] = useState(false);
+  const [readIds, setReadIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('qc_notif_read') || '[]')); }
+    catch { return new Set(); }
+  });
   const notifRef = useRef(null);
   const profileRef = useRef(null);
 
@@ -39,40 +46,208 @@ export function MainLayout() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Build human-readable relative time string
+  const relTime = (dateStr) => {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  };
+
+  // Fetch notifications from real API data, role-aware
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return;
+    setNotifsLoading(true);
+    const items = [];
+    try {
+      if (user.role === 'Patient') {
+        const [apptRes, consentRes] = await Promise.allSettled([
+          appointmentApi.myList(),
+          documentApi.myConsents({ status: 'pending' }),
+        ]);
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (apptRes.status === 'fulfilled') {
+          const appts = Array.isArray(apptRes.value.data)
+            ? apptRes.value.data
+            : (apptRes.value.data?.results || []);
+          appts
+            .filter(a => a.appointment_date >= todayStr)
+            .slice(0, 5)
+            .forEach(a => {
+              const drName = a.doctor?.user?.name || a.doctor?.name || 'your doctor';
+              const dateLabel = a.appointment_date === todayStr ? 'Today' : a.appointment_date;
+              items.push({
+                id: `appt-${a.id}`,
+                icon: '🗓️',
+                title: a.status === 'confirmed' ? 'Appointment Confirmed' : 'Appointment Scheduled',
+                body: `${a.status === 'confirmed' ? 'Confirmed' : 'Pending'} appointment with Dr. ${drName} — ${dateLabel} at ${a.appointment_time || '—'}.`,
+                time: relTime(a.created_at || a.appointment_date),
+                link: '/patient/book',
+              });
+            });
+        }
+        if (consentRes.status === 'fulfilled') {
+          const consents = Array.isArray(consentRes.value.data)
+            ? consentRes.value.data
+            : (consentRes.value.data?.results || []);
+          consents.slice(0, 3).forEach(c => {
+            const drName = c.requested_by?.name || 'A doctor';
+            items.push({
+              id: `consent-${c.id}`,
+              icon: '🔐',
+              title: 'Document Access Request',
+              body: `Dr. ${drName} has requested access to your medical document.`,
+              time: relTime(c.created_at),
+              link: '/patient/consent',
+            });
+          });
+        }
+      } else if (user.role === 'Doctor') {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const [apptRes, consentRes] = await Promise.allSettled([
+          appointmentApi.doctorList(),
+          documentApi.doctorConsents({ status: 'pending' }),
+        ]);
+        if (apptRes.status === 'fulfilled') {
+          const appts = Array.isArray(apptRes.value.data)
+            ? apptRes.value.data
+            : (apptRes.value.data?.results || []);
+          appts
+            .filter(a => a.appointment_date === todayStr)
+            .slice(0, 5)
+            .forEach(a => {
+              const patName = a.patient?.name || 'a patient';
+              items.push({
+                id: `appt-${a.id}`,
+                icon: '👤',
+                title: 'Patient Appointment Today',
+                body: `${patName} is scheduled at ${a.appointment_time || '—'} for ${a.appointment_type || 'a consultation'}.`,
+                time: relTime(a.created_at || a.appointment_date),
+                link: '/doctor/queue',
+              });
+            });
+          // Also upcoming (next 2 days)
+          appts
+            .filter(a => a.appointment_date > todayStr)
+            .slice(0, 3)
+            .forEach(a => {
+              const patName = a.patient?.name || 'a patient';
+              items.push({
+                id: `upcoming-${a.id}`,
+                icon: '🗓️',
+                title: 'Upcoming Appointment',
+                body: `${patName} on ${a.appointment_date} at ${a.appointment_time || '—'}.`,
+                time: relTime(a.created_at || a.appointment_date),
+                link: '/doctor/queue',
+              });
+            });
+        }
+        if (consentRes.status === 'fulfilled') {
+          const consents = Array.isArray(consentRes.value.data)
+            ? consentRes.value.data
+            : (consentRes.value.data?.results || []);
+          consents.slice(0, 3).forEach(c => {
+            const patName = c.patient?.name || 'A patient';
+            items.push({
+              id: `consent-${c.id}`,
+              icon: '📋',
+              title: 'Consent Request Update',
+              body: `${patName} has responded to your document access request.`,
+              time: relTime(c.updated_at || c.created_at),
+              link: '/doctor/reports',
+            });
+          });
+        }
+      } else if (user.role === 'Lab') {
+        const docsRes = await documentApi.list().catch(() => null);
+        if (docsRes) {
+          const docs = Array.isArray(docsRes.data) ? docsRes.data : (docsRes.data?.results || []);
+          docs.slice(0, 5).forEach(d => {
+            items.push({
+              id: `doc-${d.id}`,
+              icon: '🔬',
+              title: 'Lab Report Uploaded',
+              body: `${d.title || d.document_type || 'Report'} for ${d.patient?.name || 'patient'} is available.`,
+              time: relTime(d.created_at),
+              link: '/lab/upload',
+            });
+          });
+        }
+      } else if (user.role === 'Admin') {
+        const apptRes = await appointmentApi.doctorList().catch(() => null);
+        if (apptRes) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const appts = Array.isArray(apptRes.data) ? apptRes.data : (apptRes.data?.results || []);
+          const todayAppts = appts.filter(a => a.appointment_date === todayStr);
+          if (todayAppts.length > 0) {
+            items.push({
+              id: 'admin-today',
+              icon: '📊',
+              title: 'Daily Summary',
+              body: `${todayAppts.length} appointment(s) are scheduled today across your clinic.`,
+              time: 'today',
+              link: '/admin',
+            });
+          }
+        }
+      }
+    } catch {
+      // silently fail — show empty state
+    }
+    setNotifications(items);
+    setNotifsLoading(false);
+  }, [user]);
+
+  // Fetch on mount
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  const unreadCount = notifications.filter(n => !readIds.has(n.id)).length;
+
+  const handleMarkAllRead = () => {
+    const allIds = notifications.map(n => n.id);
+    const next = new Set([...readIds, ...allIds]);
+    setReadIds(next);
+    localStorage.setItem('qc_notif_read', JSON.stringify([...next]));
+  };
+
   const handleBellClick = () => {
     setBellAnimating(true);
-    setShowNotifications(!showNotifications);
+    setShowNotifications(prev => !prev);
     setTimeout(() => setBellAnimating(false), 800);
   };
 
   const roleLinks = {
     Patient: [
-      { name: 'Dashboard',      path: '/patient',           icon: LayoutDashboard },
-      { name: 'Book Appointment', path: '/patient/book',     icon: Calendar },
-      { name: 'My Reports',     path: '/patient/reports',    icon: FileText },
-      { name: 'Admission & Docs',path: '/patient/admission', icon: ClipboardList },
-      { name: 'Consent & Data', path: '/patient/consent',    icon: Shield },
-      { name: 'My Profile',     path: '/patient/profile',    icon: UserIcon },
+      { name: 'Dashboard', path: '/patient', icon: LayoutDashboard },
+      { name: 'Book Appointment', path: '/patient/book', icon: Calendar },
+      { name: 'My Reports', path: '/patient/reports', icon: FileText },
+      { name: 'Admission & Docs', path: '/patient/admission', icon: ClipboardList },
+      { name: 'Consent & Data', path: '/patient/consent', icon: Shield },
+      { name: 'My Profile', path: '/patient/profile', icon: UserIcon },
     ],
     Doctor: [
-      { name: 'Dashboard',      path: '/doctor',             icon: LayoutDashboard },
-      { name: 'Patient Queue',  path: '/doctor/queue',       icon: Users },
-      { name: 'Reports Review', path: '/doctor/reports',     icon: Microscope },
-      { name: 'My Patients',    path: '/doctor/patients',    icon: Activity },
-      { name: 'Prescriptions',  path: '/doctor/prescriptions', icon: Pill },
-      { name: 'My Profile',     path: '/doctor/profile',     icon: UserIcon },
+      { name: 'Dashboard', path: '/doctor', icon: LayoutDashboard },
+      { name: 'Patient Queue', path: '/doctor/queue', icon: Users },
+      { name: 'Reports Review', path: '/doctor/reports', icon: Microscope },
+      { name: 'My Patients', path: '/doctor/patients', icon: Activity },
+      { name: 'Prescriptions', path: '/doctor/prescriptions', icon: Pill },
+      { name: 'My Profile', path: '/doctor/profile', icon: UserIcon },
     ],
     Lab: [
-      { name: 'Dashboard',      path: '/lab',                icon: LayoutDashboard },
-      { name: 'Upload Report',  path: '/lab/upload',         icon: FileText },
-      { name: 'My Profile',     path: '/lab/profile',        icon: UserIcon },
+      { name: 'Dashboard', path: '/lab', icon: LayoutDashboard },
+      { name: 'Upload Report', path: '/lab/upload', icon: FileText },
+      { name: 'My Profile', path: '/lab/profile', icon: UserIcon },
     ],
     Admin: [
-      { name: 'Dashboard',      path: '/admin',              icon: LayoutDashboard },
-      { name: 'Manage Staff',   path: '/admin/staff',        icon: Users },
-      { name: 'Time Slots',     path: '/admin/slots',        icon: Calendar },
-      { name: 'Analytics',      path: '/admin/analytics',    icon: BarChart3 },
-      { name: 'My Profile',     path: '/admin/profile',      icon: UserIcon },
+      { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
+      { name: 'Manage Staff', path: '/admin/staff', icon: Users },
+      { name: 'Time Slots', path: '/admin/slots', icon: Calendar },
+      { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
+      { name: 'My Profile', path: '/admin/profile', icon: UserIcon },
     ],
   };
 
@@ -88,7 +263,7 @@ export function MainLayout() {
   return (
     <ToastProvider>
       <div className="min-h-screen flex overflow-x-hidden" style={{ backgroundColor: 'var(--bg)' }}>
-        
+
         {/* Mobile Sidebar Backdrop */}
         <AnimatePresence>
           {sidebarOpen && (
@@ -111,9 +286,7 @@ export function MainLayout() {
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-5 shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
             <Link to="/" onClick={() => window.innerWidth < 1024 && setSidebarOpen(false)} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center shadow-[var(--shadow-glow-primary)]">
-                <HeartPulse className="text-white w-5 h-5" />
-              </div>
+              <img src="/logo.jpeg" alt="QuickCare" className="w-8 h-8 rounded-lg object-cover" />
               <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
                 Quick<span style={{ color: 'var(--primary)' }}>Care</span>
               </span>
@@ -190,7 +363,7 @@ export function MainLayout() {
 
         {/* ===================== MAIN CONTENT ===================== */}
         <div className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? 'ml-0 md:ml-64' : 'ml-0'}`}>
-          
+
           {/* ====== GLASSMORPHISM NAVBAR ====== */}
           <header
             className="h-16 flex items-center justify-between px-4 sm:px-6 z-10 sticky top-0 shrink-0 glass"
@@ -238,7 +411,9 @@ export function MainLayout() {
                   style={{ color: 'var(--text-muted)' }}
                 >
                   <Bell size={18} />
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-[var(--danger)] rounded-full border-2 border-white dark:border-[var(--card)]" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-[var(--danger)] rounded-full border-2 border-white dark:border-[var(--card)]" />
+                  )}
                 </button>
 
                 <AnimatePresence>
@@ -251,29 +426,77 @@ export function MainLayout() {
                       exit={{ opacity: 0, y: -8, scale: 0.95 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     >
+                      {/* Header */}
                       <div className="p-4 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border)' }}>
-                        <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Notifications</h3>
-                        <button className="text-xs font-semibold" style={{ color: 'var(--primary)' }}>Mark all read</button>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Notifications</h3>
+                          {unreadCount > 0 && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--danger)] text-white leading-none">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </div>
+                        {notifications.length > 0 && unreadCount > 0 && (
+                          <button
+                            onClick={handleMarkAllRead}
+                            className="text-xs font-semibold transition-opacity hover:opacity-70"
+                            style={{ color: 'var(--primary)' }}
+                          >
+                            Mark all read
+                          </button>
+                        )}
                       </div>
+
+                      {/* Body */}
                       <div className="max-h-72 overflow-y-auto divide-y" style={{ borderColor: 'var(--border)' }}>
-                        {[
-                          { icon: '🗓️', title: 'Appointment Confirmed', time: '2m ago', body: 'Your appointment with Dr. Smith is confirmed for tomorrow.' },
-                          { icon: '🔬', title: 'Lab Report Ready', time: '1h ago', body: 'Your CBC report has been reviewed and is available.' },
-                          { icon: '💊', title: 'Prescription Updated', time: '3h ago', body: 'Dr. Ahmed has updated your Atorvastatin dosage.' },
-                        ].map((n, i) => (
-                          <div key={i} className="p-4 flex gap-3 cursor-pointer transition-colors hover:bg-[var(--bg-secondary)]">
-                            <span className="text-lg shrink-0">{n.icon}</span>
-                            <div>
-                              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{n.title}</p>
-                              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{n.body}</p>
-                              <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--primary)' }}>{n.time}</p>
-                            </div>
+                        {notifsLoading ? (
+                          <div className="flex items-center justify-center gap-2 py-10 text-sm" style={{ color: 'var(--text-muted)' }}>
+                            <Loader2 size={16} className="animate-spin" /> Loading…
                           </div>
-                        ))}
+                        ) : notifications.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-10 gap-2" style={{ color: 'var(--text-muted)' }}>
+                            <Bell size={28} className="opacity-20" />
+                            <p className="text-sm font-medium">No new notifications</p>
+                          </div>
+                        ) : (
+                          notifications.map((n) => {
+                            const isUnread = !readIds.has(n.id);
+                            return (
+                              <div
+                                key={n.id}
+                                onClick={() => { navigate(n.link || '#'); setShowNotifications(false); }}
+                                className="p-4 flex gap-3 cursor-pointer transition-colors hover:bg-[var(--bg-secondary)] relative"
+                              >
+                                {/* Unread dot */}
+                                {isUnread && (
+                                  <span className="absolute top-4 right-4 h-2 w-2 rounded-full bg-[var(--primary)]" />
+                                )}
+                                <span className="text-lg shrink-0">{n.icon}</span>
+                                <div className="flex-1 min-w-0 pr-3">
+                                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{n.title}</p>
+                                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{n.body}</p>
+                                  {n.time && (
+                                    <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--primary)' }}>{n.time}</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
-                      <div className="p-3 text-center" style={{ borderTop: '1px solid var(--border)' }}>
-                        <button className="text-xs font-semibold transition-opacity hover:opacity-70" style={{ color: 'var(--text-secondary)' }}>View all notifications</button>
-                      </div>
+
+                      {/* Footer */}
+                      {!notifsLoading && notifications.length > 0 && (
+                        <div className="p-3 text-center" style={{ borderTop: '1px solid var(--border)' }}>
+                          <button
+                            onClick={() => { fetchNotifications(); }}
+                            className="text-xs font-semibold transition-opacity hover:opacity-70"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            Refresh
+                          </button>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>

@@ -21,9 +21,9 @@ const INDIAN_STATES = [
 ];
 
 // ─── Style helpers ────────────────────────────────────────────────────────────
-const inputCls   = 'flex h-10 w-full rounded-xl px-3 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]';
+const inputCls = 'flex h-10 w-full rounded-xl px-3 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]';
 const inputStyle = { background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border)' };
-const labelCls   = 'block text-sm font-medium mb-1.5';
+const labelCls = 'block text-sm font-medium mb-1.5';
 const labelStyle = { color: 'var(--text-secondary)' };
 const selectStyle = { ...inputStyle, height: '2.5rem', width: '100%', borderRadius: '0.75rem', padding: '0 0.75rem', fontSize: '0.875rem', border: '1px solid var(--border)', outline: 'none' };
 
@@ -92,15 +92,15 @@ export function PatientRegister() {
   const { setUserFromTokens } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
-  const [step, setStep]         = useState(0);
-  const [errors, setErrors]     = useState({});
+  const [step, setStep] = useState(0);
+  const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // OTP state
-  const [otp, setOtp]             = useState(['', '', '', '', '', '']);
-  const otpRefs                   = useRef([]);
-  const step2TokenRef             = useRef(null);  // holds { access, refresh } from step 2
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const otpRefs = useRef([]);
+  const step2TokenRef = useRef(null);  // holds { access, refresh } from step 2
   const [countdown, setCountdown] = useState(30);
   const [canResend, setCanResend] = useState(false);
 
@@ -155,8 +155,8 @@ export function PatientRegister() {
     setLoading(true);
     try {
       await authApi.patientStep1({
-        contact:  Number(form.contact),
-        name:     form.name,
+        contact: Number(form.contact),
+        name: form.name,
         password: form.password,
       });
       setOtp(['', '', '', '', '', '']);
@@ -180,8 +180,8 @@ export function PatientRegister() {
     setLoading(true);
     try {
       await authApi.patientStep1({
-        contact:  Number(form.contact),
-        name:     form.name,
+        contact: Number(form.contact),
+        name: form.name,
         password: form.password,
       });
       setOtp(['', '', '', '', '', '']);
@@ -205,7 +205,7 @@ export function PatientRegister() {
     try {
       const { data } = await authApi.patientStep2({
         contact: Number(form.contact),
-        otp:     code,
+        otp: code,
       });
       // Store JWT tokens so step3 PUT will be authorized
       setTokens(data.access, data.refresh);
@@ -230,24 +230,24 @@ export function PatientRegister() {
     setLoading(true);
     try {
       const { data } = await authApi.patientStep3({
-        gender:                   form.gender,
-        age:                      Number(form.age),
-        email:                    form.email || undefined,
-        blood_group:              form.blood_group || undefined,
-        address_area:             form.address_area || undefined,
-        house_no:                 form.house_no || undefined,
-        town:                     form.town || undefined,
-        state:                    form.state || undefined,
-        pincode:                  form.pincode || undefined,
-        landmark:                 form.landmark || undefined,
-        allergies:                form.allergies || undefined,
-        chronic_conditions:       form.chronic_conditions || undefined,
-        current_medications:      form.current_medications || undefined,
-        past_surgeries:           form.past_surgeries || undefined,
-        family_history:           form.family_history || undefined,
-        height_cm:                form.height_cm ? Number(form.height_cm) : undefined,
-        weight_kg:                form.weight_kg ? Number(form.weight_kg) : undefined,
-        emergency_contact_name:   form.emergency_contact_name || undefined,
+        gender: form.gender,
+        age: Number(form.age),
+        email: form.email || undefined,
+        blood_group: form.blood_group || undefined,
+        address_area: form.address_area || undefined,
+        house_no: form.house_no || undefined,
+        town: form.town || undefined,
+        state: form.state || undefined,
+        pincode: form.pincode || undefined,
+        landmark: form.landmark || undefined,
+        allergies: form.allergies || undefined,
+        chronic_conditions: form.chronic_conditions || undefined,
+        current_medications: form.current_medications || undefined,
+        past_surgeries: form.past_surgeries || undefined,
+        family_history: form.family_history || undefined,
+        height_cm: form.height_cm ? Number(form.height_cm) : undefined,
+        weight_kg: form.weight_kg ? Number(form.weight_kg) : undefined,
+        emergency_contact_name: form.emergency_contact_name || undefined,
         emergency_contact_number: form.emergency_contact_number ? Number(form.emergency_contact_number) : undefined,
       });
       const tokens = step2TokenRef.current;
@@ -288,9 +288,7 @@ export function PatientRegister() {
       {/* Top Bar */}
       <div className="flex items-center justify-between px-6 py-4 relative z-10">
         <Link to="/login" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--primary)' }}>
-            <HeartPulse className="text-white" size={18} />
-          </div>
+          <img src="/logo.jpeg" alt="QuickCare" className="w-8 h-8 rounded-lg object-cover" />
           <span className="font-bold text-sm">Quick<span style={{ color: 'var(--primary)' }}>Care</span></span>
         </Link>
         <div className="flex items-center gap-3">

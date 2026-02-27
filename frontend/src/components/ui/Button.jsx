@@ -23,10 +23,8 @@ export function Button({ className, variant = 'primary', size = 'md', children, 
       "hover:bg-[var(--primary-hover)] hover:shadow-lg hover:shadow-blue-500/25",
     ].join(' '),
     secondary: [
-      "bg-white text-gray-700 border border-[var(--border)]",
+      "bg-[var(--card)] text-[var(--text-secondary)] border border-[var(--border)]",
       "hover:bg-[var(--bg-secondary)] hover:border-[var(--border-strong)]",
-      "dark:bg-[var(--card-elevated)] dark:text-[var(--text-primary)] dark:border-[var(--border)]",
-      "dark:hover:bg-slate-700",
       "shadow-sm"
     ].join(' '),
     accent: [
@@ -34,8 +32,7 @@ export function Button({ className, variant = 'primary', size = 'md', children, 
       "hover:bg-[var(--accent-hover)] hover:shadow-lg hover:shadow-green-500/25",
     ].join(' '),
     ghost: [
-      "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]",
-      "dark:hover:bg-slate-800 dark:text-[var(--text-secondary)]"
+      "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
     ].join(' '),
     danger: [
       "bg-[var(--danger)] text-white shadow-md",
@@ -44,7 +41,6 @@ export function Button({ className, variant = 'primary', size = 'md', children, 
     outline: [
       "border border-[var(--primary)] text-[var(--primary)] bg-transparent",
       "hover:bg-[var(--primary-muted)]",
-      "dark:border-[var(--primary)] dark:text-[var(--primary)]",
     ].join(' '),
   };
 
