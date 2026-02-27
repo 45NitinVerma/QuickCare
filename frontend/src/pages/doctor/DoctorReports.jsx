@@ -812,12 +812,13 @@ export function DoctorReports() {
                     <th className="px-5 py-3.5 font-semibold" style={{ color: 'var(--text-muted)' }}>Patient</th>
                     <th className="px-5 py-3.5 font-semibold" style={{ color: 'var(--text-muted)' }}>Status</th>
                     <th className="px-5 py-3.5 font-semibold" style={{ color: 'var(--text-muted)' }}>Expires</th>
+                    <th className="px-5 py-3.5 font-semibold text-right" style={{ color: 'var(--text-muted)' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {requests.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="text-center py-12">
+                      <td colSpan="5" className="text-center py-12">
                         <Shield className="w-8 h-8 mx-auto mb-3 opacity-30" />
                         <p style={{ color: 'var(--text-muted)' }}>No consent requests sent.</p>
                       </td>
@@ -848,6 +849,51 @@ export function DoctorReports() {
                         </td>
                         <td className="px-5 py-4 text-xs" style={{ color: 'var(--text-muted)' }}>
                           {req.expires_at ? new Date(req.expires_at).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="px-5 py-4">
+                          {req.status === 'granted' && (req.document?.file || req.file || req.file_url) && (
+                            <div className="flex items-center justify-end gap-2">
+                              <motion.button
+                                onClick={() => handleSummary(req.document?.file ? req.document : req)}
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
+                                className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold overflow-hidden"
+                                style={{
+                                  background: 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)',
+                                  color: 'white',
+                                  boxShadow: '0 2px 8px rgba(14,165,233,0.35)',
+                                }}
+                              >
+                                <FileSearch size={12} />
+                                Quick Summary
+                              </motion.button>
+                              <motion.button
+                                onClick={() => handleAnalyse(req.document?.file ? req.document : req)}
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
+                                className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold overflow-hidden"
+                                style={{
+                                  background: 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)',
+                                  color: 'white',
+                                  boxShadow: '0 2px 8px rgba(99,102,241,0.35)',
+                                }}
+                              >
+                                <Sparkles size={12} />
+                                AI Analysis
+                              </motion.button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 gap-1.5"
+                                onClick={() => {
+                                  const doc = req.document?.file ? req.document : req;
+                                  setViewModal({ open: true, fileUrl: doc.file || doc.file_url, filename: doc.title || doc.document_title || (doc.file || doc.file_url)?.split('/').pop() || 'Document' });
+                                }}
+                              >
+                                <Eye size={13} /> View
+                              </Button>
+                            </div>
+                          )}
                         </td>
                       </motion.tr>
                     ))

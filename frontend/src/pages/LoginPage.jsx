@@ -38,7 +38,7 @@ export function LoginPage() {
     setIsLoading(false);
     if (result.success) {
       // First-time staff (doctor/lab/receptionist) added by admin → complete their profile first
-      if (result.is_partial_onboarding) {
+      if (result.is_partial_onboarding && !result.is_complete_onboarding && result.role !== 'Patient' && result.role !== 'Admin') {
         navigate('/onboarding/member');
       } else {
         navigate(roleRoutes[result.role] || '/');
