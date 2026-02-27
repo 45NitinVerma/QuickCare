@@ -95,7 +95,6 @@ const testimonials = [
 ];
 
 const trustPoints = [
-  { icon: Lock, label: 'HIPAA Compliant' },
   { icon: ShieldCheck, label: 'End-to-End Encrypted' },
   { icon: Globe, label: 'Globally Accessible' },
   { icon: Award, label: 'ISO 27001 Certified' },
@@ -199,7 +198,7 @@ export function LandingPage() {
                   <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75" style={{ background: 'var(--primary)' }} />
                   <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: 'var(--primary)' }} />
                 </span>
-                Next-Generation Healthcare OS
+                Next-Generation Healthcare
               </motion.div>
 
               <motion.h1
@@ -215,7 +214,7 @@ export function LandingPage() {
                       initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.9, duration: 0.8 }} />
                   </motion.svg>
                 </span>
-                around you.
+                {' '}around you.
               </motion.h1>
 
               <motion.p
@@ -245,7 +244,7 @@ export function LandingPage() {
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
                 className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1"
               >
-                {['HIPAA Compliant', 'End-to-End Encrypted', 'SOC 2 Type II'].map(label => (
+                {['ABHA Coming Soon', 'End-to-End Encrypted', 'Secure Storage'].map(label => (
                   <div key={label} className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                     <CheckCircle2 size={14} style={{ color: 'var(--accent)' }} /> {label}
                   </div>
@@ -623,7 +622,7 @@ export function LandingPage() {
               {['Features', 'Security', 'Pricing', 'Blog'].map(l => (
                 <a key={l} href="#" className="hover:text-[var(--primary)] transition-colors py-0.5">{l}</a>
               ))}
-              {['Privacy', 'Terms', 'HIPAA', 'Contact'].map(l => (
+              {['Privacy', 'Terms', 'Contact'].map(l => (
                 <a key={l} href="#" className="hover:text-[var(--primary)] transition-colors py-0.5">{l}</a>
               ))}
             </div>

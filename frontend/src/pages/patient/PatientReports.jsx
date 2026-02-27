@@ -103,6 +103,7 @@ export function PatientReports() {
 
   // Delete state
   const [deletingId, setDeletingId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // View modal
   const [viewModal, setViewModal] = useState({ open: false, fileUrl: '', filename: '' });
@@ -164,12 +165,12 @@ export function PatientReports() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this document?")) return;
+  const confirmDelete = async (id) => {
     setDeletingId(id);
     try {
       await documentApi.delete(id);
       loadDocs();
+      setDeleteConfirmId(null);
     } catch {
       // Ignore errors
     } finally {
@@ -268,7 +269,7 @@ export function PatientReports() {
                             </Button>
                           </>
                         )}
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Delete" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(doc.id)} disabled={deletingId === doc.id}>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Delete" style={{ color: 'var(--danger)' }} onClick={() => setDeleteConfirmId(doc.id)} disabled={deletingId === doc.id}>
                           {deletingId === doc.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                         </Button>
                         <Button
@@ -383,6 +384,20 @@ export function PatientReports() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Confirm Deletion">
+        <div className="space-y-4">
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Are you sure you want to delete this document? This action cannot be undone.</p>
+          <div className="flex justify-end gap-3 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+            <Button type="button" variant="ghost" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+            <Button type="button" disabled={deletingId === deleteConfirmId} onClick={() => confirmDelete(deleteConfirmId)} style={{ background: 'var(--danger)', color: 'white', border: 'none' }}>
+              {deletingId === deleteConfirmId && <Loader2 size={14} className="animate-spin mr-1" />}
+              Delete
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       {/* View Report Modal */}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { authApi, setTokens } from '../../services/api';
+import { authApi, setTokens, doctorApi } from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Stethoscope, User, Phone, Mail, MapPin, FileText,
@@ -40,6 +40,16 @@ const INDIAN_STATES = [
   'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
   'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
   'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi',
+];
+
+const DAYS = [
+  { value: 'monday', label: 'Monday' },
+  { value: 'tuesday', label: 'Tuesday' },
+  { value: 'wednesday', label: 'Wednesday' },
+  { value: 'thursday', label: 'Thursday' },
+  { value: 'friday', label: 'Friday' },
+  { value: 'saturday', label: 'Saturday' },
+  { value: 'sunday', label: 'Sunday' },
 ];
 
 // ─── Styles ───────────────────────────────────────────────────
@@ -92,7 +102,7 @@ function SectionHead({ icon: Icon, title }) {
 // ─── Main Component ───────────────────────────────────────────
 export function DoctorOnboarding() {
   const navigate = useNavigate();
-  const { setUserFromTokens } = useAuth();
+  const { user, setUserFromTokens } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -102,10 +112,10 @@ export function DoctorOnboarding() {
 
   const [form, setForm] = useState({
     // Personal
-    name: '',
+    name: user?.name || '',
     gender: '',
     age: '',
-    email: '',
+    email: user?.email || '',
     blood_group: '',
     // Professional (doctor)
     specialty: '',
@@ -118,6 +128,9 @@ export function DoctorOnboarding() {
     state: '',
     pincode: '',
   });
+  const [workingHours, setWorkingHours] = useState([{
+    day: 'monday', start_time: '09:00', end_time: '17:00', slot_duration_minutes: 15, max_patients: 20
+  }]);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   // ── Validation ───────────────────────────────────────────────
@@ -131,6 +144,15 @@ export function DoctorOnboarding() {
       e.email = 'Enter a valid email';
     if (form.pincode && !/^\d{6}$/.test(form.pincode))
       e.pincode = 'Pincode must be 6 digits';
+      
+    if (user?.role === 'Doctor') {
+      if (workingHours.length === 0) e.workingHours = 'At least one working hour slot is required';
+      workingHours.forEach((slot, i) => {
+        if (!slot.day || !slot.start_time || !slot.end_time || !slot.slot_duration_minutes || !slot.max_patients) {
+          e[`slot_${i}`] = 'All fields are required for each slot';
+        }
+      });
+    }
     return e;
   };
 
@@ -160,6 +182,31 @@ export function DoctorOnboarding() {
       };
 
       const { data } = await authApi.memberComplete(payload);
+
+      // We need valid tokens right away to call doctor setup
+      setTokens(data.access, data.refresh);
+
+      // Create initial availability slot if doctor
+      if (user?.role === 'Doctor') {
+        const docRes = await doctorApi.me();
+        const docId = docRes.data?.id;
+        const clinicId = docRes.data?.clinics?.[0]?.clinic_id;
+        if (docId) {
+          for (const slot of workingHours) {
+            const availPayload = {
+              day: slot.day,
+              start_time: slot.start_time,
+              end_time: slot.end_time,
+              slot_duration_minutes: Number(slot.slot_duration_minutes),
+              max_patients: Number(slot.max_patients),
+            };
+            if (clinicId) availPayload.clinic = clinicId;
+            try {
+              await doctorApi.createAvailability(docId, availPayload);
+            } catch(e) { console.error('Failed to create slot', e); }
+          }
+        }
+      }
 
       // Update auth context with the fully onboarded user
       setUserFromTokens(data.access, data.refresh, data.user);
@@ -342,6 +389,65 @@ export function DoctorOnboarding() {
                   </FieldWrap>
                 </div>
               </div>
+
+              {/* ── Section 4: Working Hours ── */}
+              {user?.role === 'Doctor' && (
+                <div>
+                  <SectionHead icon={HeartPulse} title="Working Hours (Mandatory)" />
+                  <div className="space-y-4">
+                    {workingHours.map((slot, index) => (
+                      <div key={index} className="p-4 rounded-xl border relative" style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}>
+                        {workingHours.length > 1 && (
+                          <button type="button" onClick={() => setWorkingHours(wh => wh.filter((_, i) => i !== index))} className="absolute top-3 right-3 p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                            <X size={14} />
+                          </button>
+                        )}
+                        <div className="grid sm:grid-cols-2 md:grid-cols-5 gap-4 pr-6">
+                          <FieldWrap label="Day *">
+                            <select style={selectStyle} value={slot.day} onChange={e => {
+                              const newWh = [...workingHours]; newWh[index].day = e.target.value; setWorkingHours(newWh);
+                            }}>
+                              {DAYS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                            </select>
+                          </FieldWrap>
+                          <FieldWrap label="Start *">
+                            <TextInput type="time" value={slot.start_time} onChange={e => {
+                              const newWh = [...workingHours]; newWh[index].start_time = e.target.value; setWorkingHours(newWh);
+                            }} />
+                          </FieldWrap>
+                          <FieldWrap label="End *">
+                            <TextInput type="time" value={slot.end_time} onChange={e => {
+                              const newWh = [...workingHours]; newWh[index].end_time = e.target.value; setWorkingHours(newWh);
+                            }} />
+                          </FieldWrap>
+                          <FieldWrap label="Duration (m) *">
+                            <TextInput type="number" min={5} value={slot.slot_duration_minutes} onChange={e => {
+                              const newWh = [...workingHours]; newWh[index].slot_duration_minutes = e.target.value; setWorkingHours(newWh);
+                            }} />
+                          </FieldWrap>
+                          <FieldWrap label="Patients *">
+                            <TextInput type="number" min={1} value={slot.max_patients} onChange={e => {
+                              const newWh = [...workingHours]; newWh[index].max_patients = e.target.value; setWorkingHours(newWh);
+                            }} />
+                          </FieldWrap>
+                        </div>
+                        <ErrMsg msg={errors[`slot_${index}`]} />
+                      </div>
+                    ))}
+                    <ErrMsg msg={errors.workingHours} />
+                    {DAYS.filter(d => !workingHours.some(s => s.day === d.value)).length > 0 && (
+                      <button type="button" onClick={() => setWorkingHours(wh => {
+                        const used = wh.map(s => s.day);
+                        const nextDay = DAYS.find(d => !used.includes(d.value))?.value || 'monday';
+                        return [...wh, { day: nextDay, start_time: '09:00', end_time: '17:00', slot_duration_minutes: 15, max_patients: 20 }];
+                      })}
+                        className="text-sm font-semibold flex items-center gap-2 transition-opacity hover:opacity-80" style={{ color: 'var(--primary)', marginTop: '0.5rem' }}>
+                        + Add another slot
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Bottom bar */}

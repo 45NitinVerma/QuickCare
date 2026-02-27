@@ -56,10 +56,19 @@ function Toast({ toast, onClose }) {
   );
 }
 
+function format12Hr(time24) {
+  if (!time24) return '';
+  const [h, m] = time24.split(':');
+  let hh = parseInt(h, 10);
+  const ampm = hh >= 12 ? 'PM' : 'AM';
+  hh = hh % 12 || 12;
+  return `${hh}:${m} ${ampm}`;
+}
+
 export function DoctorProfile() {
   const { user } = useAuth();
 
-  const [userForm, setUserForm] = useState({ name: '', email: '' });
+  const [userForm, setUserForm] = useState({ name: user?.name || '', email: user?.email || '' });
   const [docForm,  setDocForm]  = useState({ specialty: '', qualification: '', experience_years: '', clinic_name: '' });
   const [toast,    setToast]    = useState(null);
   const [saving,   setSaving]   = useState({});
@@ -82,7 +91,7 @@ export function DoctorProfile() {
       const [meRes, docRes] = await Promise.allSettled([userApi.getMe(), doctorApi.me()]);
       if (meRes.status === 'fulfilled') {
         const u = meRes.value.data;
-        setUserForm({ name: u.name || '', email: u.email || '' });
+        setUserForm(f => ({ name: f.name || u.name || '', email: f.email || u.email || '' }));
       }
       if (docRes.status === 'fulfilled') {
         const d = docRes.value.data;
@@ -99,6 +108,13 @@ export function DoctorProfile() {
           setDoctorId(d.id);
           const availRes = await doctorApi.availability(d.id);
           setAvailability(Array.isArray(availRes.data) ? availRes.data : (availRes.data?.results || []));
+        }
+        
+        if (d.user) {
+          setUserForm(f => ({
+            name: f.name || d.user.name || '',
+            email: f.email || d.user.email || '',
+          }));
         }
       }
     } catch {
@@ -154,24 +170,33 @@ export function DoctorProfile() {
   };
 
   const handleAddAvailability = async () => {
-    if (!clinics.length) { showToast('No clinic assigned to your profile', 'error'); return; }
     if (!doctorId) { showToast('Doctor profile not loaded', 'error'); return; }
     
     setAvailSaving(true);
     try {
       const payload = {
-        clinic: availForm.clinic_id || clinics[0].clinic_id,
         day: availForm.day,
         start_time: availForm.start_time,
         end_time: availForm.end_time,
         slot_duration_minutes: Number(availForm.slot_duration_minutes),
         max_patients: Number(availForm.max_patients),
       };
+      if (clinics && clinics.length > 0) {
+        payload.clinic = clinics[0].clinic_id || clinics[0].id;
+      }
+      if (availForm.clinic_id) payload.clinic = availForm.clinic_id;
+
       await doctorApi.createAvailability(doctorId, payload);
       
       // Reload availability
       const availRes = await doctorApi.availability(doctorId);
-      setAvailability(Array.isArray(availRes.data) ? availRes.data : (availRes.data?.results || []));
+      const newAvail = Array.isArray(availRes.data) ? availRes.data : (availRes.data?.results || []);
+      setAvailability(newAvail);
+      
+      const used = newAvail.map(a => a.day);
+      const nextAvailable = DAYS.find(d => !used.includes(d.value))?.value || 'monday';
+      setAvailForm(prev => ({ ...prev, day: nextAvailable }));
+      
       showToast('Availability added!');
     } catch (e) {
       showToast(e.response?.data?.message || 'Failed to add availability', 'error');
@@ -192,6 +217,16 @@ export function DoctorProfile() {
     }
   };
 
+  const usedDays = availability.map(a => a.day);
+  const availableDays = DAYS.filter(d => !usedDays.includes(d.value));
+
+  // Reset selected day to nearest valid day on mount or if day configs change
+  useEffect(() => {
+    if (availableDays.length > 0 && !availableDays.some(d => d.value === availForm.day)) {
+      setAvailForm(f => ({ ...f, day: availableDays[0].value }));
+    }
+  }, [availability, availableDays, availForm.day]);
+
   if (loading) return (
     <div className="flex items-center justify-center py-24" style={{ color: 'var(--text-muted)' }}>
       <Loader2 size={28} className="animate-spin" />
@@ -211,16 +246,25 @@ export function DoctorProfile() {
         </div>
       </motion.div>
 
+      {availability.length === 0 && (
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-4 rounded-xl text-sm font-semibold flex items-center gap-3" style={{ background: 'var(--danger-light)', color: 'var(--danger)', border: '1px solid currentColor' }}>
+          <AlertCircle size={20} className="shrink-0" />
+          Mandatory Requirement: Please add your working hours below to complete your profile setup and start receiving appointments.
+        </motion.div>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-8 items-start">
         {/* Avatar card */}
         <motion.div className="lg:col-span-1" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="text-center overflow-visible mt-8">
-            <CardContent className="p-6 pt-0">
-              <div className="w-24 h-24 mx-auto rounded-2xl flex items-center justify-center text-4xl font-black -mt-12 mb-4"
-                style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)', color: 'white' }}>
+          <Card className="text-center overflow-visible mt-8 border-0 shadow-lg" style={{ background: 'var(--bg)', backdropFilter: 'blur(12px)' }}>
+            <CardContent className="p-8 pt-0">
+              <motion.div 
+                whileHover={{ scale: 1.05, rotate: -2 }}
+                className="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center text-4xl font-black -mt-12 mb-5 shadow-inner"
+                style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #a855f7 100%)', color: 'white' }}>
                 {(userForm.name || user?.name || 'D').charAt(0).toUpperCase()}
-              </div>
-              <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>{userForm.name || 'Doctor'}</h2>
+              </motion.div>
+              <h2 className="text-2xl font-extrabold mb-1 tracking-tight" style={{ color: 'var(--text-primary)' }}>{userForm.name || 'Doctor'}</h2>
               <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{userForm.email}</p>
               <p className="text-xs mb-4 font-medium capitalize" style={{ color: 'var(--primary)' }}>{docForm.specialty || 'Physician'}</p>
               <div className="flex justify-center gap-2 mb-5">
@@ -240,16 +284,18 @@ export function DoctorProfile() {
         </motion.div>
 
         {/* Forms */}
-        <motion.div className="lg:col-span-2 space-y-6" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.12 }}>
+        <motion.div className="lg:col-span-2 space-y-8" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.12 }}>
           {/* Personal */}
-          <Card>
-            <CardContent className="p-6 space-y-5">
-              <h3 className="font-semibold text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Personal Details</h3>
-              <div className="grid md:grid-cols-2 gap-5">
+          <Card className="shadow-sm border-0" style={{ background: 'var(--bg)', backdropFilter: 'blur(10px)' }}>
+            <CardContent className="p-8 space-y-6">
+              <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <User size={16} style={{ color: 'var(--primary)' }} /> Personal Details
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label style={labelStyle}>Full Name</label>
-                  <div className="relative">
-                    <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                  <div className="relative group">
+                    <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[var(--primary)]" style={{ color: 'var(--text-muted)' }} />
                     <input className={inputCls + ' pl-9'} style={inputStyle} value={userForm.name} onChange={e => setU('name', e.target.value)} placeholder="Dr. Your Name" />
                   </div>
                 </div>
@@ -267,16 +313,26 @@ export function DoctorProfile() {
                     <input className={inputCls + ' pl-9'} style={disabledSt} readOnly value={`+91-${user?.contact || ''}`} />
                   </div>
                 </div>
-                <div>
-                  <label style={labelStyle}>Assigned Clinic</label>
-                  <div className="relative">
-                    <Building2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-                    <input className={inputCls + ' pl-9'} style={disabledSt} readOnly value={docForm.clinic_name || '—'} />
+                <div className="md:col-span-2">
+                  <label style={labelStyle}>Assigned Clinics</label>
+                  <div className="flex flex-wrap gap-2">
+                    {clinics.length > 0 ? clinics.map((c, i) => (
+                      <motion.span whileHover={{ y: -2, scale: 1.02 }} key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold border shadow-sm cursor-default"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border)' }}>
+                        <Building2 size={14} style={{ color: 'var(--primary)' }} />
+                        {c.clinic_name}
+                      </motion.span>
+                    )) : (
+                      <div className="relative w-full">
+                        <Building2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                        <input className={inputCls + ' pl-9'} style={disabledSt} readOnly value="No clinic assigned yet" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <Button onClick={handleSavePersonal} disabled={saving.personal} className="gap-2">
+              <div className="flex justify-end pt-2">
+                <Button onClick={handleSavePersonal} disabled={saving.personal} className="gap-2 shadow-md">
                   {saving.personal ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Save Personal
                 </Button>
               </div>
@@ -284,10 +340,12 @@ export function DoctorProfile() {
           </Card>
 
           {/* Professional */}
-          <Card>
-            <CardContent className="p-6 space-y-5">
-              <h3 className="font-semibold text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Professional Details</h3>
-              <div className="grid md:grid-cols-2 gap-5">
+          <Card className="shadow-sm border-0" style={{ background: 'var(--bg)', backdropFilter: 'blur(10px)' }}>
+            <CardContent className="p-8 space-y-6">
+              <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <Award size={16} style={{ color: 'var(--primary)' }} /> Professional Details
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label style={labelStyle}>Specialty</label>
                   <select style={selectStyle} value={docForm.specialty} onChange={e => setD('specialty', e.target.value)}>
@@ -304,14 +362,14 @@ export function DoctorProfile() {
                 </div>
                 <div className="md:col-span-2">
                   <label style={labelStyle}>Qualification</label>
-                  <div className="relative">
-                    <Award size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                  <div className="relative group">
+                    <Award size={14} className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors group-focus-within:text-[var(--primary)]" style={{ color: 'var(--text-muted)' }} />
                     <input className={inputCls + ' pl-9'} style={inputStyle} value={docForm.qualification} onChange={e => setD('qualification', e.target.value)} placeholder="MBBS, MD Cardiology" />
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <Button onClick={handleSaveDoc} disabled={saving.doc} className="gap-2">
+              <div className="flex justify-end pt-2">
+                <Button onClick={handleSaveDoc} disabled={saving.doc} className="gap-2 shadow-md">
                   {saving.doc ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Save Professional
                 </Button>
               </div>
@@ -319,16 +377,18 @@ export function DoctorProfile() {
           </Card>
 
           {/* Change Password */}
-          <Card>
-            <CardContent className="p-6 space-y-5">
-              <h3 className="font-semibold text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Change Password</h3>
-              <div className="grid md:grid-cols-2 gap-5">
+          <Card className="shadow-sm border-0" style={{ background: 'var(--bg)' }}>
+            <CardContent className="p-8 space-y-6">
+              <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <Lock size={16} style={{ color: 'var(--primary)' }} /> Change Password
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label style={labelStyle}>New Password</label>
                   <div className="relative">
                     <input className={inputCls + ' pr-10'} style={inputStyle} type={showPw ? 'text' : 'password'} value={pwForm.password} onChange={e => setPwForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 6 characters" />
-                    <button type="button" onClick={() => setShowPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
-                      {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                    <button type="button" onClick={() => setShowPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors hover:text-[var(--primary)]" style={{ color: 'var(--text-muted)' }}>
+                      {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </div>
@@ -337,8 +397,8 @@ export function DoctorProfile() {
                   <input className={inputCls} style={inputStyle} type="password" value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} placeholder="Re-enter" />
                 </div>
               </div>
-              <div className="flex justify-end">
-                <Button onClick={handleChangePassword} disabled={pwSaving} className="gap-2">
+              <div className="flex justify-end pt-2">
+                <Button onClick={handleChangePassword} disabled={pwSaving} className="gap-2 shadow-md">
                   {pwSaving ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />} Change Password
                 </Button>
               </div>
@@ -346,51 +406,64 @@ export function DoctorProfile() {
           </Card>
 
           {/* Availability */}
-          <Card>
-            <CardContent className="p-6 space-y-5">
-              <h3 className="font-semibold text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Working Hours</h3>
+          <Card className="shadow-sm border-0" style={{ background: 'var(--bg)', backdropFilter: 'blur(10px)' }}>
+            <CardContent className="p-8 space-y-6">
+              <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <Clock size={16} style={{ color: 'var(--primary)' }} /> Working Hours
+              </h3>
               
               <div className="space-y-3 mb-6">
                 {availability.length === 0 ? (
-                  <p className="text-sm border rounded-xl p-4 text-center" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
-                    No working hours defined. Add your availability below.
-                  </p>
+                  <div className="flex flex-col items-center justify-center py-8 rounded-2xl border-2 border-dashed" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+                    <CalendarDays size={32} style={{ color: 'var(--text-muted)' }} className="mb-3 opacity-50" />
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+                      No working hours defined.
+                    </p>
+                    <p className="text-xs mt-1 opacity-75" style={{ color: 'var(--text-muted)' }}>Add your availability below.</p>
+                  </div>
                 ) : (
-                  availability.map(a => (
-                    <div key={a.id} className="flex items-center justify-between p-3 rounded-xl border text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+                  [...availability]
+                    .sort((a, b) => {
+                      const idxA = DAYS.findIndex(d => d.value === a.day);
+                      const idxB = DAYS.findIndex(d => d.value === b.day);
+                      return idxA - idxB;
+                    })
+                    .map(a => (
+                    <motion.div whileHover={{ x: 4, scale: 1.01 }} key={a.id} className="flex items-center justify-between p-4 rounded-xl border text-sm shadow-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
                       <div>
-                        <span className="font-semibold capitalize" style={{ color: 'var(--text-primary)' }}>{a.day}</span>
-                        <span style={{ color: 'var(--text-muted)' }} className="ml-2">
-                          {a.start_time.substring(0,5)} - {a.end_time.substring(0,5)}
+                        <span className="font-bold capitalize" style={{ color: 'var(--text-primary)' }}>{a.day}</span>
+                        <span style={{ color: 'var(--text-muted)' }} className="ml-2 font-medium">
+                          {format12Hr(a.start_time.substring(0,5))} - {format12Hr(a.end_time.substring(0,5))}
                         </span>
-                        <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                          {a.slot_duration_minutes} mins · max {a.max_patients} patients
+                        <div className="text-xs mt-1.5 font-medium" style={{ color: 'var(--text-secondary)' }}>
+                          <span style={{ color: 'var(--primary)' }}>{a.slot_duration_minutes} mins</span> · Max <span style={{ color: 'var(--primary)' }}>{a.max_patients}</span> patients
                         </div>
                       </div>
-                      <button onClick={() => handleRemoveAvailability(a.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                        <X size={16} />
+                      <button onClick={() => handleRemoveAvailability(a.id)} className="p-2.5 text-red-500 hover:bg-red-50 hover:scale-110 active:scale-95 rounded-xl transition-all">
+                        <X size={18} />
                       </button>
-                    </div>
+                    </motion.div>
                   ))
                 )}
               </div>
 
-              <div className="p-4 rounded-xl border space-y-4" style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}>
-                <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Add New Slot</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="col-span-2">
-                    <label style={labelStyle}>Clinic</label>
-                    <select style={selectStyle} value={availForm.clinic_id} onChange={e => setAvailForm(f => ({ ...f, clinic_id: e.target.value }))}>
-                      {clinics.map(c => <option key={c.clinic_id} value={c.clinic_id}>{c.clinic_name}</option>)}
-                      {clinics.length === 0 && <option value="">No clinics found</option>}
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label style={labelStyle}>Day</label>
-                    <select style={selectStyle} value={availForm.day} onChange={e => setAvailForm(f => ({ ...f, day: e.target.value }))}>
-                      {DAYS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-                    </select>
-                  </div>
+              {availableDays.length === 0 ? (
+                <div className="p-5 rounded-2xl border text-center text-sm font-semibold flex items-center justify-center gap-3" style={{ borderColor: 'var(--border)', background: 'var(--primary-muted)', color: 'var(--primary)' }}>
+                  <CheckCircle2 size={18} />
+                  You have configured working hours for all 7 days!
+                </div>
+              ) : (
+                <div className="p-6 rounded-2xl border space-y-5 shadow-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}>
+                  <h4 className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                    <Plus size={16} style={{ color: 'var(--primary)' }} /> Add New Slot
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+                    <div className="col-span-2 md:col-span-4">
+                      <label style={labelStyle}>Day</label>
+                      <select style={selectStyle} value={availForm.day} onChange={e => setAvailForm(f => ({ ...f, day: e.target.value }))}>
+                        {availableDays.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                      </select>
+                    </div>
                   <div className="col-span-2 md:col-span-1">
                     <label style={labelStyle}>Start</label>
                     <input className={inputCls} style={inputStyle} type="time" value={availForm.start_time} onChange={e => setAvailForm(f => ({ ...f, start_time: e.target.value }))} />
@@ -400,20 +473,21 @@ export function DoctorProfile() {
                     <input className={inputCls} style={inputStyle} type="time" value={availForm.end_time} onChange={e => setAvailForm(f => ({ ...f, end_time: e.target.value }))} />
                   </div>
                   <div className="col-span-2 md:col-span-1">
-                    <label style={labelStyle}>Duration</label>
+                    <label style={labelStyle}>Duration (min)</label>
                     <input className={inputCls} style={inputStyle} type="number" min={5} value={availForm.slot_duration_minutes} onChange={e => setAvailForm(f => ({ ...f, slot_duration_minutes: e.target.value }))} />
                   </div>
                   <div className="col-span-2 md:col-span-1">
-                    <label style={labelStyle}>Max Pts</label>
+                    <label style={labelStyle}>Max Patients</label>
                     <input className={inputCls} style={inputStyle} type="number" min={1} value={availForm.max_patients} onChange={e => setAvailForm(f => ({ ...f, max_patients: e.target.value }))} />
                   </div>
                 </div>
-                <div className="flex justify-end pt-2">
-                  <Button onClick={handleAddAvailability} disabled={availSaving || !clinics.length} className="gap-2">
-                    {availSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Add Hours
+                <div className="flex justify-end pt-3">
+                  <Button onClick={handleAddAvailability} disabled={availSaving || availableDays.length === 0} className="gap-2 shadow-md hover:-translate-y-0.5 transition-transform" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%)' }}>
+                    {availSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={16} />} Add Hours
                   </Button>
                 </div>
               </div>
+              )}
 
             </CardContent>
           </Card>

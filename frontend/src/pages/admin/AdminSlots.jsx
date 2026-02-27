@@ -196,6 +196,7 @@ export function AdminSlots() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSlot, setEditingSlot] = useState(null);
   const [removingId, setRemovingId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [filterDay, setFilterDay] = useState('all');
 
   const showToast = (msg, type = 'success') => setToast({ msg, type });
@@ -229,13 +230,13 @@ export function AdminSlots() {
     await loadData();
   };
 
-  const handleDelete = async (slotId) => {
-    if (!window.confirm('Deactivate this slot?')) return;
+  const confirmDelete = async (slotId) => {
     setRemovingId(slotId);
     try {
       await clinicApi.deleteSlot(clinicId, slotId);
       showToast('Slot deactivated successfully!');
       await loadData();
+      setDeleteConfirmId(null);
     } catch {
       showToast('Failed to delete slot.', 'error');
     } finally {
@@ -467,7 +468,7 @@ export function AdminSlots() {
                               </button>
                               {isActive && (
                                 <button
-                                  onClick={() => handleDelete(slot.id)}
+                                  onClick={() => setDeleteConfirmId(slot.id)}
                                   disabled={isRemoving}
                                   className="p-1.5 rounded-lg transition-colors hover:bg-[var(--border)] flex items-center gap-1 px-2 text-xs font-semibold"
                                   style={{ color: 'var(--danger)' }}
@@ -488,6 +489,23 @@ export function AdminSlots() {
           </Card>
         </motion.div>
       </AnimatePresence>
+
+      <AnimatePresence>
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Confirm Deactivation">
+        <div className="space-y-4">
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Are you sure you want to deactivate this slot? This action cannot be undone.</p>
+          <div className="flex justify-end gap-3 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+            <Button type="button" variant="ghost" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+            <Button type="button" disabled={removingId === deleteConfirmId} onClick={() => confirmDelete(deleteConfirmId)} style={{ background: 'var(--danger)', color: 'white', border: 'none' }}>
+              {removingId === deleteConfirmId && <Loader2 size={14} className="animate-spin mr-1" />}
+              Deactivate
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <SlotModal
         isOpen={isModalOpen}
