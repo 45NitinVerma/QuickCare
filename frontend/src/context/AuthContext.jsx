@@ -48,12 +48,7 @@ export const AuthProvider = ({ children }) => {
       setTokens(data.access, data.refresh);
       const u = mapUser(data.user);
       setUser(u);
-      return { 
-        success: true, 
-        role: u.role, 
-        is_partial_onboarding: u.is_partial_onboarding,
-        is_complete_onboarding: u.is_complete_onboarding 
-      };
+      return { success: true, role: u.role, is_partial_onboarding: u.is_partial_onboarding };
     } catch (err) {
       const msg = err.response?.data?.message
         || err.response?.data?.detail
