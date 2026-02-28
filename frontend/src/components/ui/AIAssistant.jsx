@@ -104,13 +104,6 @@ export function AIAssistant() {
             </button>
           </div>
 
-          {/* Warning Banner */}
-          <div className="shrink-0 px-4 py-2.5 flex items-start gap-2 text-xs"
-            style={{ background: 'var(--warning-light)', borderBottom: '1px solid var(--border)', color: 'var(--warning)' }}>
-            <ShieldAlert size={13} className="shrink-0 mt-0.5" />
-            <p>AI may generate inaccurate responses. For emergencies, call 911 immediately.</p>
-          </div>
-
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ background: 'var(--bg-secondary)' }}>
             {messages.map((msg) => (
