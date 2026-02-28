@@ -1,0 +1,2818 @@
+openapi: 3.0.3
+info:
+  title: QuickCare API
+  version: 1.0.0
+  description: |-
+    Backend API for QuickCare — a health management platform.
+
+    ## Authentication
+    All protected endpoints require a Bearer JWT token in the `Authorization` header:
+    ```
+    Authorization: Bearer <access_token>
+    ```
+    Obtain a token via **Login** or **Registration Step 2**.
+
+    ## User Roles
+    | ID | Role |
+    |---|---|
+    | 3 | Patient |
+    | 7 | Clinic Owner |
+    | 4 | Doctor |
+paths:
+  /api/appointments/doctor/:
+    get:
+      operationId: appointments_doctor_retrieve
+      description: |-
+        Doctor: view all appointments on their schedule.
+        Supports ?date=YYYY-MM-DD and ?status= filters.
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/appointments/doctor/{id}/:
+    get:
+      operationId: appointments_doctor_retrieve_2
+      description: 'Doctor: confirm, complete, add notes, or cancel an appointment.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+    put:
+      operationId: appointments_doctor_update
+      description: 'Doctor: confirm, complete, add notes, or cancel an appointment.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/appointments/my/:
+    get:
+      operationId: appointments_my_retrieve
+      description: |-
+        GET  – list all appointments for the logged-in patient
+        POST – book a new appointment
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: appointments_my_create
+      description: |-
+        GET  – list all appointments for the logged-in patient
+        POST – book a new appointment
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/appointments/my/{id}/:
+    get:
+      operationId: appointments_my_retrieve_2
+      description: 'Patient: get or cancel a specific appointment.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+    put:
+      operationId: appointments_my_update
+      description: Patient can only cancel their appointment.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/clinics/:
+    get:
+      operationId: clinics_retrieve
+      tags:
+      - Clinics
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clinic'
+          description: ''
+    post:
+      operationId: clinics_create
+      tags:
+      - Clinics
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clinic'
+          description: ''
+  /api/clinics/{clinic_id}/:
+    get:
+      operationId: clinics_retrieve_2
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinics
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clinic'
+          description: ''
+    put:
+      operationId: clinics_update
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinics
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clinic'
+          description: ''
+    delete:
+      operationId: clinics_destroy
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinics
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clinic'
+          description: ''
+  /api/clinics/{clinic_id}/admission-docs/:
+    get:
+      operationId: clinics_admission_docs_retrieve
+      description: "GET  (public)         – list all required admission documents
+        for a clinic\nPOST (clinic owner \U0001F512) – add a new required document
+        to the checklist"
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Admission Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicAdmissionDocument'
+          description: ''
+    post:
+      operationId: clinics_admission_docs_create
+      description: "GET  (public)         – list all required admission documents
+        for a clinic\nPOST (clinic owner \U0001F512) – add a new required document
+        to the checklist"
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Admission Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicAdmissionDocument'
+          description: ''
+  /api/clinics/{clinic_id}/admission-docs/{doc_id}/:
+    put:
+      operationId: clinics_admission_docs_update
+      description: "PUT    (clinic owner \U0001F512) – update a required document
+        entry\nDELETE (clinic owner \U0001F512) – remove a required document entry"
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: doc_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Admission Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicAdmissionDocument'
+          description: ''
+    delete:
+      operationId: clinics_admission_docs_destroy
+      description: "PUT    (clinic owner \U0001F512) – update a required document
+        entry\nDELETE (clinic owner \U0001F512) – remove a required document entry"
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: doc_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Admission Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicAdmissionDocument'
+          description: ''
+  /api/clinics/{clinic_id}/admission-docs/patient/:
+    get:
+      operationId: clinics_admission_docs_patient_retrieve
+      description: "GET /api/clinics/<clinic_id>/admission-docs/patient/   \U0001F512
+        \ (Patient)\n\nReturns the admission document checklist for a clinic the patient\nhas
+        an active/upcoming appointment at.\nPrevents patients from querying clinics
+        they have no relationship with."
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Admission Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicAdmissionDocument'
+          description: ''
+  /api/clinics/{clinic_id}/members/:
+    get:
+      operationId: clinics_members_retrieve
+      description: |-
+        GET  – list all members of the clinic (owner only)
+        POST – add a new doctor / lab member / receptionist by contact number
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Members
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicMember'
+          description: ''
+    post:
+      operationId: clinics_members_create
+      description: |-
+        Add a member by their contact number.
+        - If the user does NOT exist → auto-create account with 8-digit temp password,
+          send password to their contact, set is_partial_onboarding=True.
+        - If the user already exists → add to clinic directly (status=active).
+        - Doctors are enforced to belong to only ONE clinic at a time.
+        - Auto-creates DoctorProfile for doctors.
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Members
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicMember'
+          description: ''
+  /api/clinics/{clinic_id}/members/{member_id}/:
+    get:
+      operationId: clinics_members_retrieve_2
+      description: |-
+        GET    – get a single member's details (owner only)
+        PUT    – update member role / department / notes (owner only)
+        DELETE – remove (deactivate) a member from the clinic
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Members
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicMember'
+          description: ''
+    put:
+      operationId: clinics_members_update
+      description: |-
+        GET    – get a single member's details (owner only)
+        PUT    – update member role / department / notes (owner only)
+        DELETE – remove (deactivate) a member from the clinic
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Members
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicMember'
+          description: ''
+    delete:
+      operationId: clinics_members_destroy
+      description: |-
+        Soft-remove: sets status to 'inactive' and records left_at date.
+        Does NOT delete the user account.
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Members
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicMember'
+          description: ''
+  /api/clinics/{clinic_id}/slots/:
+    get:
+      operationId: clinics_slots_retrieve
+      description: |-
+        GET  – list all time slots for a clinic (public)
+        POST – add a new time slot (owner only)
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Time Slots
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicTimeSlot'
+          description: ''
+    post:
+      operationId: clinics_slots_create
+      description: |-
+        GET  – list all time slots for a clinic (public)
+        POST – add a new time slot (owner only)
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Time Slots
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicTimeSlot'
+          description: ''
+  /api/clinics/{clinic_id}/slots/{slot_id}/:
+    put:
+      operationId: clinics_slots_update
+      description: |-
+        PUT    – update a time slot (owner only)
+        DELETE – deactivate a time slot (owner only)
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slot_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Time Slots
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicTimeSlot'
+          description: ''
+    delete:
+      operationId: clinics_slots_destroy
+      description: |-
+        PUT    – update a time slot (owner only)
+        DELETE – deactivate a time slot (owner only)
+      parameters:
+      - in: path
+        name: clinic_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slot_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Clinic Time Slots
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicTimeSlot'
+          description: ''
+  /api/clinics/my/memberships/:
+    get:
+      operationId: clinics_my_memberships_retrieve
+      description: A doctor / lab member views all clinics they belong to.
+      tags:
+      - Clinic Members
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicMember'
+          description: ''
+  /api/clinics/onboarding/step3/:
+    post:
+      operationId: clinics_onboarding_step3_create
+      description: |-
+        CLINIC OWNER — Step 2 (requires JWT from user onboarding Step 1).
+
+        Creates the clinic and initial time slots in one request.
+        Sets the owner's is_complete_onboarding = True.
+
+        POST /api/clinics/onboarding/step2/
+        {
+            "name": "City Care Clinic",
+            "clinic_type": "clinic",
+            "phone": "9876543210",
+            "email": "citycare@example.com",
+            "address": "12, MG Road",
+            "city": "Jaipur",
+            "state": "Rajasthan",
+            "pincode": "302001",
+            "description": "Multi-specialty clinic",
+            "time_slots": [
+                {"day_of_week": 0, "start_time": "09:00", "end_time": "13:00", "slot_duration_minutes": 15},
+                {"day_of_week": 0, "start_time": "17:00", "end_time": "20:00", "slot_duration_minutes": 15},
+                {"day_of_week": 1, "start_time": "09:00", "end_time": "13:00", "slot_duration_minutes": 15}
+            ]
+        }
+      tags:
+      - Clinic Owner Registration
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/clinics/public/:
+    get:
+      operationId: clinics_public_list
+      description: |-
+        Public endpoint: patients can browse clinics.
+        Supports ?city= and ?name= search.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - clinics
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedClinicList'
+          description: ''
+  /api/doctors/:
+    get:
+      operationId: doctors_list
+      description: |-
+        Public: list all active, verified doctors that belong to at least one clinic.
+        Filter by ?clinic=<uuid>, ?specialty=, ?city=, ?min_fee=, ?max_fee=, ?video=
+      parameters:
+      - in: query
+        name: city
+        schema:
+          type: string
+      - in: query
+        name: clinic
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: max_fee
+        schema:
+          type: number
+      - in: query
+        name: min_fee
+        schema:
+          type: number
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: specialty
+        schema:
+          type: string
+      - in: query
+        name: video
+        schema:
+          type: boolean
+      tags:
+      - Doctors
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDoctorProfileList'
+          description: ''
+  /api/doctors/{doctor_id}/availability/:
+    get:
+      operationId: doctors_availability_retrieve
+      description: |-
+        GET  – public: get a doctor's availability at a specific clinic
+               ?clinic_id=<uuid> to filter by clinic (optional)
+        POST – doctor adds an availability slot for a clinic they belong to
+        PUT  – doctor updates a slot (pass slot_id in request body)
+        DELETE – doctor removes a slot (?slot_id=)
+      parameters:
+      - in: path
+        name: doctor_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorAvailability'
+          description: ''
+    post:
+      operationId: doctors_availability_create
+      description: |-
+        GET  – public: get a doctor's availability at a specific clinic
+               ?clinic_id=<uuid> to filter by clinic (optional)
+        POST – doctor adds an availability slot for a clinic they belong to
+        PUT  – doctor updates a slot (pass slot_id in request body)
+        DELETE – doctor removes a slot (?slot_id=)
+      parameters:
+      - in: path
+        name: doctor_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorAvailability'
+          description: ''
+    put:
+      operationId: doctors_availability_update
+      description: |-
+        GET  – public: get a doctor's availability at a specific clinic
+               ?clinic_id=<uuid> to filter by clinic (optional)
+        POST – doctor adds an availability slot for a clinic they belong to
+        PUT  – doctor updates a slot (pass slot_id in request body)
+        DELETE – doctor removes a slot (?slot_id=)
+      parameters:
+      - in: path
+        name: doctor_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorAvailability'
+          description: ''
+    delete:
+      operationId: doctors_availability_destroy
+      description: |-
+        GET  – public: get a doctor's availability at a specific clinic
+               ?clinic_id=<uuid> to filter by clinic (optional)
+        POST – doctor adds an availability slot for a clinic they belong to
+        PUT  – doctor updates a slot (pass slot_id in request body)
+        DELETE – doctor removes a slot (?slot_id=)
+      parameters:
+      - in: path
+        name: doctor_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorAvailability'
+          description: ''
+  /api/doctors/{doctor_id}/availability/slots/:
+    get:
+      operationId: doctors_availability_slots_retrieve
+      description: |-
+        Public: Returns free time slots for a doctor on a given date.
+        Query params: ?date=YYYY-MM-DD  &clinic_id=<uuid> (optional)
+      parameters:
+      - in: path
+        name: doctor_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/doctors/{id}/:
+    get:
+      operationId: doctors_retrieve
+      description: 'Public: get a single doctor''s full profile.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Doctors
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorProfile'
+          description: ''
+  /api/doctors/me/:
+    get:
+      operationId: doctors_me_retrieve
+      description: |-
+        Authenticated doctor: get or create/update own professional profile.
+        Note: A DoctorProfile is auto-created when a clinic adds the doctor as a member.
+      tags:
+      - Doctors
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorProfile'
+          description: ''
+    put:
+      operationId: doctors_me_update
+      description: Doctor updates their own professional details.
+      tags:
+      - Doctors
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorProfile'
+          description: ''
+  /api/doctors/me/leaves/:
+    get:
+      operationId: doctors_me_leaves_retrieve
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorLeave'
+          description: ''
+    post:
+      operationId: doctors_me_leaves_create
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorLeave'
+          description: ''
+    delete:
+      operationId: doctors_me_leaves_destroy
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorLeave'
+          description: ''
+  /api/doctors/me/leaves/{leave_id}/:
+    get:
+      operationId: doctors_me_leaves_retrieve_2
+      parameters:
+      - in: path
+        name: leave_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorLeave'
+          description: ''
+    post:
+      operationId: doctors_me_leaves_create_2
+      parameters:
+      - in: path
+        name: leave_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorLeave'
+          description: ''
+    delete:
+      operationId: doctors_me_leaves_destroy_2
+      parameters:
+      - in: path
+        name: leave_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Doctor Availability
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorLeave'
+          description: ''
+  /api/documents/:
+    get:
+      operationId: documents_retrieve
+      description: |-
+        GET  – patient: own documents | doctor: documents they have consent to
+        POST – patient or doctor uploads a document for a patient
+      tags:
+      - Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+          description: ''
+    post:
+      operationId: documents_create
+      description: |-
+        GET  – patient: own documents | doctor: documents they have consent to
+        POST – patient or doctor uploads a document for a patient
+      tags:
+      - Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+          description: ''
+  /api/documents/{doc_id}/access-log/:
+    get:
+      operationId: documents_access_log_retrieve_2
+      description: 'Patient: view the full audit trail of who accessed their documents.'
+      parameters:
+      - in: path
+        name: doc_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentAccessLog'
+          description: ''
+  /api/documents/{id}/:
+    get:
+      operationId: documents_retrieve_2
+      description: |-
+        GET    – download/view a document (owner or consented doctor)
+        DELETE – soft-delete (owner only)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+          description: ''
+    delete:
+      operationId: documents_destroy
+      description: |-
+        GET    – download/view a document (owner or consented doctor)
+        DELETE – soft-delete (owner only)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+          description: ''
+  /api/documents/access-log/:
+    get:
+      operationId: documents_access_log_retrieve
+      description: 'Patient: view the full audit trail of who accessed their documents.'
+      tags:
+      - Documents
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentAccessLog'
+          description: ''
+  /api/documents/consent/{consent_id}/action/:
+    patch:
+      operationId: documents_consent_action_partial_update
+      description: |-
+        Patient: grant, reject, or revoke a consent request.
+        PATCH: { action: "granted" | "rejected" | "revoked", expires_at: "..." }
+      parameters:
+      - in: path
+        name: consent_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Document Consent
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentConsent'
+          description: ''
+  /api/documents/consent/doctor/:
+    get:
+      operationId: documents_consent_doctor_retrieve
+      description: 'Doctor: view all consent requests they have made.'
+      tags:
+      - Document Consent
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentConsent'
+          description: ''
+  /api/documents/consent/mine/:
+    get:
+      operationId: documents_consent_mine_retrieve
+      description: 'Patient: view all consent requests made for their documents.'
+      tags:
+      - Document Consent
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentConsent'
+          description: ''
+  /api/documents/consent/request/:
+    post:
+      operationId: documents_consent_request_create
+      description: |-
+        Doctor requests access to a patient's document.
+        POST: { document: <uuid>, purpose: "..." }
+      tags:
+      - Document Consent
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentConsent'
+          description: ''
+  /api/users/address/:
+    get:
+      operationId: users_address_retrieve
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAddress'
+          description: ''
+    post:
+      operationId: users_address_create
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAddress'
+          description: ''
+  /api/users/address/{id}/:
+    get:
+      operationId: users_address_retrieve_2
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAddress'
+          description: ''
+    put:
+      operationId: users_address_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAddress'
+          description: ''
+    delete:
+      operationId: users_address_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAddress'
+          description: ''
+  /api/users/check/:
+    get:
+      operationId: users_check_retrieve
+      description: Check whether a contact number is already registered.
+      parameters:
+      - in: query
+        name: contact
+        schema:
+          type: string
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/users/login/:
+    post:
+      operationId: users_login_create
+      description: |-
+        Standard login with contact number + password.
+        No OTP required — credentials are verified against the DB.
+
+        POST /api/users/login/
+        {
+            "contact": 9876543210,
+            "password": "secret123"
+        }
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/me/:
+    get:
+      operationId: users_me_retrieve
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: users_me_update
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/me/medical-profile/:
+    get:
+      operationId: users_me_medical_profile_retrieve
+      description: GET / PUT the logged-in patient's medical profile.
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientMedicalProfile'
+          description: ''
+    put:
+      operationId: users_me_medical_profile_update
+      description: GET / PUT the logged-in patient's medical profile.
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientMedicalProfile'
+          description: ''
+  /api/users/onboarding/clinic/step1/:
+    post:
+      operationId: users_onboarding_clinic_step1_create
+      description: |-
+        CLINIC OWNER — Step 1.
+
+        Accepts contact + name + password.
+        Stores data in cache and sends OTP to the contact number.
+
+        POST /api/users/onboarding/clinic/step1/
+        {
+            "contact": 9876543210,
+            "name": "Dr. Anil Gupta",
+            "password": "secret123"
+        }
+      tags:
+      - Clinic Owner Registration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClinicOwnerStep1Request'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClinicOwnerStep1Request'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClinicOwnerStep1Request'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: OTP sent
+  /api/users/onboarding/clinic/step2/:
+    post:
+      operationId: users_onboarding_clinic_step2_create
+      description: |-
+        CLINIC OWNER — Step 2.
+
+        Verifies OTP. On success, creates the user account and returns JWT.
+
+        POST /api/users/onboarding/clinic/step2/
+        {
+            "contact": 9876543210,
+            "otp": "482910"
+        }
+      tags:
+      - Clinic Owner Registration
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/onboarding/member/complete/:
+    patch:
+      operationId: users_onboarding_member_complete_partial_update
+      description: "PATCH /api/users/onboarding/member/complete/   \U0001F512\n\nUsed
+        by a doctor, lab member, or receptionist who was added to a clinic\nby the
+        clinic owner. They log in with the auto-generated temp password,\nthen call
+        this endpoint to fill in their profile and complete onboarding.\n\nSets is_complete_onboarding
+        = True.\nAll fields are optional — they can be updated later from /api/users/me/."
+      tags:
+      - Clinic Staff Onboarding
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMemberOnboardingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMemberOnboardingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMemberOnboardingRequest'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/onboarding/patient/step1/:
+    post:
+      operationId: users_onboarding_patient_step1_create
+      description: |-
+        PATIENT — Step 1.
+
+        Accepts contact + name + password.
+        Validates contact is not already registered.
+        Stores data in cache and sends OTP to the contact number.
+
+        POST /api/users/onboarding/patient/step1/
+        {
+            "contact": 9876543210,
+            "name": "Rahul Sharma",
+            "password": "secret123"
+        }
+      tags:
+      - Patient Registration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientStep1Request'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatientStep1Request'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatientStep1Request'
+        required: true
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: OTP sent
+  /api/users/onboarding/patient/step2/:
+    post:
+      operationId: users_onboarding_patient_step2_create
+      description: |-
+        PATIENT — Step 2.
+
+        Verifies OTP. On success, creates the user account and returns JWT.
+
+        POST /api/users/onboarding/patient/step2/
+        {
+            "contact": 9876543210,
+            "otp": "482910"
+        }
+      tags:
+      - Patient Registration
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/onboarding/patient/step3/:
+    patch:
+      operationId: users_onboarding_patient_step3_partial_update
+      description: |-
+        PATIENT — Step 3 (requires JWT from Step 2).
+
+        Saves basic details (gender, age, email, blood_group, address)
+        and medical details. Sets is_complete_onboarding = True.
+
+        PATCH /api/users/onboarding/patient/step3/
+      tags:
+      - Patient Registration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPatientStep2Request'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPatientStep2Request'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPatientStep2Request'
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/password/change/:
+    put:
+      operationId: users_password_change_update
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/users/patient/lookup/:
+    get:
+      operationId: users_patient_lookup_retrieve
+      description: |-
+        Search a patient by their contact number.
+        Only accessible by doctors and lab members.
+        Returns the patient's id, name, and contact — enough to pass as patient_id when uploading documents.
+      parameters:
+      - in: query
+        name: contact
+        schema:
+          type: string
+        description: Patient phone number (10 digits)
+      tags:
+      - User
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/token/refresh/:
+    post:
+      operationId: users_token_refresh_create
+      description: Refresh access token using refresh token.
+      tags:
+      - Auth
+      security:
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+components:
+  schemas:
+    AddressTypeEnum:
+      enum:
+      - home
+      - work
+      type: string
+      description: |-
+        * `home` - home
+        * `work` - work
+    BlankEnum:
+      enum:
+      - ''
+    BloodGroupEnum:
+      enum:
+      - A+
+      - A-
+      - B+
+      - B-
+      - AB+
+      - AB-
+      - O+
+      - O-
+      type: string
+      description: |-
+        * `A+` - A+
+        * `A-` - A-
+        * `B+` - B+
+        * `B-` - B-
+        * `AB+` - AB+
+        * `AB-` - AB-
+        * `O+` - O+
+        * `O-` - O-
+    Clinic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        clinic_type:
+          $ref: '#/components/schemas/ClinicTypeEnum'
+        owner:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        phone:
+          type: string
+          nullable: true
+          maxLength: 15
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 254
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+          maxLength: 100
+        state:
+          type: string
+          nullable: true
+          maxLength: 100
+        pincode:
+          type: string
+          nullable: true
+          maxLength: 10
+        registration_number:
+          type: string
+          nullable: true
+          maxLength: 100
+        logo:
+          type: string
+          format: uri
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        doctor_count:
+          type: integer
+          readOnly: true
+        staff_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - doctor_count
+      - id
+      - name
+      - owner
+      - slug
+      - staff_count
+    ClinicAdmissionDocument:
+      type: object
+      description: Read serializer — returned to any caller (patient, public).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        document_name:
+          type: string
+          description: Human-readable name, e.g. 'Aadhar Card', 'CBC Blood Report'
+          maxLength: 200
+        document_type:
+          $ref: '#/components/schemas/ClinicAdmissionDocumentDocumentTypeEnum'
+        document_type_display:
+          type: string
+          readOnly: true
+        is_mandatory:
+          type: boolean
+          description: True = patient must bring this; False = recommended but optional
+        notes:
+          type: string
+          nullable: true
+          description: Additional instructions for the patient, e.g. 'original + 2
+            photocopies'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - document_name
+      - document_type_display
+      - id
+    ClinicAdmissionDocumentDocumentTypeEnum:
+      enum:
+      - id_proof
+      - insurance
+      - prescription
+      - lab_report
+      - imaging
+      - vaccination
+      - discharge_summary
+      - other
+      type: string
+      description: |-
+        * `id_proof` - ID Proof (Aadhar, PAN, Passport)
+        * `insurance` - Insurance / TPA Card
+        * `prescription` - Prescription / Referral Letter
+        * `lab_report` - Lab / Blood Report
+        * `imaging` - Imaging / X-Ray / MRI / CT Scan
+        * `vaccination` - Vaccination Record
+        * `discharge_summary` - Previous Discharge Summary
+        * `other` - Other
+    ClinicMember:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        clinic:
+          type: string
+          format: uuid
+          readOnly: true
+        clinic_name:
+          type: string
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        member_role:
+          $ref: '#/components/schemas/MemberRoleEnum'
+        status:
+          $ref: '#/components/schemas/ClinicMemberStatusEnum'
+        department:
+          type: string
+          nullable: true
+          maxLength: 100
+        joined_at:
+          type: string
+          format: date
+          nullable: true
+        left_at:
+          type: string
+          format: date
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+          description: Internal notes about this member (e.g. visiting doctor)
+        added_by_name:
+          type: string
+          readOnly: true
+        invite_accepted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - added_by_name
+      - clinic
+      - clinic_name
+      - created_at
+      - id
+      - invite_accepted_at
+      - user
+    ClinicMemberStatusEnum:
+      enum:
+      - pending
+      - active
+      - inactive
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `active` - Active
+        * `inactive` - Inactive
+    ClinicOwnerStep1Request:
+      type: object
+      properties:
+        contact:
+          type: integer
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        password:
+          type: string
+          writeOnly: true
+          minLength: 6
+      required:
+      - contact
+      - name
+      - password
+    ClinicTimeSlot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        day_of_week:
+          allOf:
+          - $ref: '#/components/schemas/DayOfWeekEnum'
+          minimum: 0
+          maximum: 32767
+        day_name:
+          type: string
+          readOnly: true
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
+        slot_duration_minutes:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          description: Duration of each appointment slot in minutes
+        max_appointments:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          description: Max appointments in this time window
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - day_name
+      - day_of_week
+      - end_time
+      - id
+      - start_time
+    ClinicTypeEnum:
+      enum:
+      - clinic
+      - hospital
+      - diagnostic_center
+      - polyclinic
+      type: string
+      description: |-
+        * `clinic` - Clinic
+        * `hospital` - Hospital
+        * `diagnostic_center` - Diagnostic Center
+        * `polyclinic` - Polyclinic
+    DayEnum:
+      enum:
+      - monday
+      - tuesday
+      - wednesday
+      - thursday
+      - friday
+      - saturday
+      - sunday
+      type: string
+      description: |-
+        * `monday` - Monday
+        * `tuesday` - Tuesday
+        * `wednesday` - Wednesday
+        * `thursday` - Thursday
+        * `friday` - Friday
+        * `saturday` - Saturday
+        * `sunday` - Sunday
+    DayOfWeekEnum:
+      enum:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      type: integer
+      description: |-
+        * `0` - Monday
+        * `1` - Tuesday
+        * `2` - Wednesday
+        * `3` - Thursday
+        * `4` - Friday
+        * `5` - Saturday
+        * `6` - Sunday
+    DoctorAvailability:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        day:
+          $ref: '#/components/schemas/DayEnum'
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
+        slot_duration_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Duration of each appointment slot in minutes
+        max_patients:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        is_active:
+          type: boolean
+        doctor:
+          type: integer
+          readOnly: true
+        clinic:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - day
+      - doctor
+      - end_time
+      - id
+      - start_time
+    DoctorClinicInfo:
+      type: object
+      description: Inline clinic info shown inside DoctorProfile response.
+      properties:
+        clinic_id:
+          type: string
+          format: uuid
+        clinic_name:
+          type: string
+        city:
+          type: string
+        department:
+          type: string
+        joined_at:
+          type: string
+          format: date
+      required:
+      - city
+      - clinic_id
+      - clinic_name
+      - department
+      - joined_at
+    DoctorLeave:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        doctor:
+          type: integer
+          readOnly: true
+        clinic:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - created_at
+      - doctor
+      - end_date
+      - id
+      - start_date
+    DoctorProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        availability:
+          type: array
+          items:
+            $ref: '#/components/schemas/DoctorAvailability'
+          readOnly: true
+        clinics:
+          type: array
+          items:
+            $ref: '#/components/schemas/DoctorClinicInfo'
+          readOnly: true
+        specialty:
+          $ref: '#/components/schemas/SpecialtyEnum'
+        qualification:
+          type: string
+          nullable: true
+          maxLength: 200
+        registration_number:
+          type: string
+          nullable: true
+          maxLength: 100
+        experience_years:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        biography:
+          type: string
+          nullable: true
+        languages:
+          type: string
+          nullable: true
+          description: Comma-separated, e.g. English, Hindi
+          maxLength: 200
+        first_visit_fee:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+        follow_up_fee:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+        offers_video_consultation:
+          type: boolean
+        is_verified:
+          type: boolean
+          readOnly: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - availability
+      - clinics
+      - created_at
+      - id
+      - is_verified
+      - updated_at
+      - user
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        owner:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        uploaded_by:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        document_type:
+          $ref: '#/components/schemas/DocumentDocumentTypeEnum'
+        file:
+          type: string
+          format: uri
+        description:
+          type: string
+          nullable: true
+        uploaded_by_role:
+          allOf:
+          - $ref: '#/components/schemas/UploadedByRoleEnum'
+          readOnly: true
+        is_deleted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        appointment:
+          type: integer
+          nullable: true
+      required:
+      - created_at
+      - file
+      - id
+      - owner
+      - title
+      - updated_at
+      - uploaded_by
+      - uploaded_by_role
+    DocumentAccessLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        document:
+          type: string
+          format: uuid
+        accessed_by_name:
+          type: string
+          readOnly: true
+        ip_address:
+          type: string
+          nullable: true
+        accessed_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - accessed_at
+      - accessed_by_name
+      - document
+      - id
+    DocumentConsent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        document:
+          type: string
+          format: uuid
+        document_title:
+          type: string
+          readOnly: true
+        doctor:
+          type: integer
+        doctor_name:
+          type: string
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+          readOnly: true
+        patient_name:
+          type: string
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/DocumentConsentStatusEnum'
+        purpose:
+          type: string
+          nullable: true
+          description: Why the doctor is requesting access
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Leave blank for indefinite access
+        actioned_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - actioned_at
+      - created_at
+      - doctor
+      - doctor_name
+      - document
+      - document_title
+      - id
+      - patient
+      - patient_name
+    DocumentConsentStatusEnum:
+      enum:
+      - pending
+      - granted
+      - revoked
+      - expired
+      - rejected
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `granted` - Granted
+        * `revoked` - Revoked
+        * `expired` - Expired
+        * `rejected` - Rejected
+    DocumentDocumentTypeEnum:
+      enum:
+      - prescription
+      - lab_report
+      - scan
+      - discharge_summary
+      - vaccination
+      - insurance
+      - other
+      type: string
+      description: |-
+        * `prescription` - Prescription
+        * `lab_report` - Lab Report
+        * `scan` - Scan / Imaging
+        * `discharge_summary` - Discharge Summary
+        * `vaccination` - Vaccination Record
+        * `insurance` - Insurance Document
+        * `other` - Other
+    GenderEnum:
+      enum:
+      - male
+      - female
+      - others
+      type: string
+      description: |-
+        * `male` - male
+        * `female` - female
+        * `others` - others
+    IdEnum:
+      enum:
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      type: integer
+      description: |-
+        * `1` - is_superadmin
+        * `2` - is_admin
+        * `3` - is_patient
+        * `4` - is_doctor
+        * `5` - is_receptionist
+        * `6` - is_lab_member
+        * `7` - is_clinic_owner
+    LoginRequest:
+      type: object
+      properties:
+        contact:
+          type: integer
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - contact
+      - password
+    MemberRoleEnum:
+      enum:
+      - doctor
+      - lab_member
+      - receptionist
+      type: string
+      description: |-
+        * `doctor` - Doctor
+        * `lab_member` - Lab Member
+        * `receptionist` - Receptionist
+    NameEnum:
+      enum:
+      - IS_SUPERADMIN
+      - IS_ADMIN
+      - IS_PATIENT
+      - IS_DOCTOR
+      - IS_RECEPTIONIST
+      - IS_LAB_MEMBER
+      - IS_CLINIC_OWNER
+      type: string
+      description: |-
+        * `IS_SUPERADMIN` - is_superadmin
+        * `IS_ADMIN` - is_admin
+        * `IS_PATIENT` - is_patient
+        * `IS_DOCTOR` - is_doctor
+        * `IS_RECEPTIONIST` - is_receptionist
+        * `IS_LAB_MEMBER` - is_lab_member
+        * `IS_CLINIC_OWNER` - is_clinic_owner
+    NullEnum:
+      enum:
+      - null
+    PaginatedClinicList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Clinic'
+    PaginatedDoctorProfileList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DoctorProfile'
+    PatchedMemberOnboardingRequest:
+      type: object
+      description: |-
+        Used by a doctor / lab member / receptionist to complete their own profile
+        after they've been added to a clinic by the clinic owner.
+        Fills personal details and sets is_complete_onboarding = True.
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        gender:
+          $ref: '#/components/schemas/GenderEnum'
+        age:
+          type: integer
+          maximum: 150
+          minimum: 0
+        email:
+          type: string
+          format: email
+        blood_group:
+          oneOf:
+          - $ref: '#/components/schemas/BloodGroupEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        specialty:
+          type: string
+        qualification:
+          type: string
+        experience_years:
+          type: integer
+          minimum: 0
+        address_area:
+          type: string
+        house_no:
+          type: string
+        town:
+          type: string
+        state:
+          type: string
+        pincode:
+          type: string
+    PatchedPatientStep2Request:
+      type: object
+      description: 'Patient Step 2: basic + medical details — completes onboarding.'
+      properties:
+        gender:
+          $ref: '#/components/schemas/GenderEnum'
+        age:
+          type: integer
+          maximum: 150
+          minimum: 0
+        email:
+          type: string
+          format: email
+        blood_group:
+          oneOf:
+          - $ref: '#/components/schemas/BloodGroupEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        address_area:
+          type: string
+        house_no:
+          type: string
+        town:
+          type: string
+        state:
+          type: string
+        pincode:
+          type: string
+        landmark:
+          type: string
+        allergies:
+          type: string
+        chronic_conditions:
+          type: string
+        current_medications:
+          type: string
+        past_surgeries:
+          type: string
+        family_history:
+          type: string
+        emergency_contact_name:
+          type: string
+        emergency_contact_number:
+          type: integer
+          nullable: true
+        height_cm:
+          type: integer
+          minimum: 0
+          nullable: true
+        weight_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+    PatientMedicalProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        allergies:
+          type: string
+          nullable: true
+          description: Known allergies (food, drug, environmental)
+        chronic_conditions:
+          type: string
+          nullable: true
+          description: Chronic conditions e.g. Diabetes, Hypertension
+        current_medications:
+          type: string
+          nullable: true
+          description: Medications currently being taken
+        past_surgeries:
+          type: string
+          nullable: true
+          description: History of surgeries
+        family_history:
+          type: string
+          nullable: true
+          description: Family medical history
+        emergency_contact_name:
+          type: string
+          nullable: true
+          maxLength: 100
+        emergency_contact_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        height_cm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        weight_kg:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - updated_at
+    PatientStep1Request:
+      type: object
+      description: |-
+        Patient Step 1: collect contact, name, password (after OTP verify).
+        Creates the User account with is_partial_onboarding=True.
+      properties:
+        contact:
+          type: integer
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        password:
+          type: string
+          writeOnly: true
+          minLength: 6
+      required:
+      - contact
+      - name
+      - password
+    Role:
+      type: object
+      properties:
+        id:
+          allOf:
+          - $ref: '#/components/schemas/IdEnum'
+          minimum: 0
+          maximum: 32767
+        name:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/NameEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - id
+    SpecialtyEnum:
+      enum:
+      - general_medicine
+      - cardiology
+      - dermatology
+      - neurology
+      - orthopedics
+      - pediatrics
+      - gynecology
+      - ophthalmology
+      - ent
+      - psychiatry
+      - dentistry
+      - radiology
+      - pathology
+      - oncology
+      - urology
+      - other
+      type: string
+      description: |-
+        * `general_medicine` - General Medicine
+        * `cardiology` - Cardiology
+        * `dermatology` - Dermatology
+        * `neurology` - Neurology
+        * `orthopedics` - Orthopedics
+        * `pediatrics` - Pediatrics
+        * `gynecology` - Gynecology
+        * `ophthalmology` - Ophthalmology
+        * `ent` - ENT
+        * `psychiatry` - Psychiatry
+        * `dentistry` - Dentistry
+        * `radiology` - Radiology
+        * `pathology` - Pathology
+        * `oncology` - Oncology
+        * `urology` - Urology
+        * `other` - Other
+    UploadedByRoleEnum:
+      enum:
+      - doctor
+      - patient
+      - lab_member
+      type: string
+      description: |-
+        * `doctor` - Doctor
+        * `patient` - Patient
+        * `lab_member` - Lab Member
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 100
+        age:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        gender:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/GenderEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        blood_group:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/BloodGroupEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        roles:
+          allOf:
+          - $ref: '#/components/schemas/Role'
+          readOnly: true
+        contact:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          nullable: true
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        is_partial_onboarding:
+          type: boolean
+        is_complete_onboarding:
+          type: boolean
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_joined
+      - id
+      - roles
+    UserAddress:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        area:
+          type: string
+          nullable: true
+        country:
+          type: string
+          maxLength: 100
+        state:
+          type: string
+          nullable: true
+          maxLength: 100
+        house_no:
+          type: string
+          nullable: true
+          maxLength: 100
+        town:
+          type: string
+          nullable: true
+          maxLength: 100
+        landmark:
+          type: string
+          nullable: true
+          maxLength: 100
+        pincode:
+          type: string
+          nullable: true
+          maxLength: 100
+        address_type:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/AddressTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        is_current:
+          type: boolean
+        user:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+      required:
+      - id
+      - user
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

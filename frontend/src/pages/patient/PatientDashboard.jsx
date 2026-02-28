@@ -59,7 +59,7 @@ export function PatientDashboard() {
         initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            Welcome back, {user?.name?.split(' ')[0]} 👋
+            Welcome back, {user?.name?.split(' ')[0]}
           </h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
             Here's a summary of your health records and upcoming schedules.

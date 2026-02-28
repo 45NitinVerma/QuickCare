@@ -1,0 +1,36 @@
+{
+  "id": "9f98cad9-8963-4e6b-a5f4-054894197f85",
+  "name": "DayCare",
+  "slug": "daycare",
+  "clinic_type": "hospital",
+  "owner": {
+    "id": "cbdf8d54-b31a-4db4-b6a6-31933394e811",
+    "name": "Dr.tom",
+    "email": null,
+    "age": 18,
+    "gender": null,
+    "blood_group": null,
+    "roles": {
+      "id": 7,
+      "name": "Clinic Owner"
+    },
+    "contact": 7539168420,
+    "avatar": null,
+    "is_partial_onboarding": true,
+    "is_complete_onboarding": true,
+    "date_joined": "2026-02-28T02:36:43.322791Z"
+  },
+  "phone": "7778889990",
+  "email": "daycare@hos.com",
+  "address": "12, mg road",
+  "city": "delhi",
+  "state": "Delhi",
+  "pincode": "302002",
+  "registration_number": "RJ-MED-201-201",
+  "logo": null,
+  "description": null,
+  "is_active": true,
+  "doctor_count": 5,
+  "staff_count": 5,
+  "created_at": "2026-02-28T02:39:44.817250Z"
+}

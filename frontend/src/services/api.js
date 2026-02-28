@@ -126,6 +126,8 @@ export const clinicApi = {
   addSlot: (id, data) => api.post(`/clinics/${id}/slots/`, data),
   updateSlot: (id, sid, data) => api.put(`/clinics/${id}/slots/${sid}/`, data),
   deleteSlot: (id, sid) => api.delete(`/clinics/${id}/slots/${sid}/`),
+  admissionDocsPatient: (id) => api.get(`/clinics/${id}/admission-docs/patient/`),
+  addAdmissionDoc: (id, data) => api.post(`/clinics/${id}/admission-documents/`, data),
 };
 
 // Doctors

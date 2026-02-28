@@ -28,25 +28,37 @@ export function BookAppointment() {
 
   // Load clinics on mount
   useEffect(() => {
+    let ignore = false;
     clinicApi.publicList()
       .then(r => {
+        if (ignore) return;
         const data = r.data;
         setClinics(Array.isArray(data) ? data : (data?.results || []));
       })
-      .catch(() => setClinics([]));
+      .catch(() => {
+        if (!ignore) setClinics([]);
+      });
+    return () => { ignore = true; };
   }, []);
 
   // Load doctors when clinic selected
   useEffect(() => {
     if (!formData.clinicId) { setDoctors([]); return; }
+    let ignore = false;
     setLoading(true);
     doctorApi.list({ clinic: formData.clinicId })
       .then(r => {
+        if (ignore) return;
         const data = r.data;
         setDoctors(Array.isArray(data) ? data : (data?.results || []));
       })
-      .catch(() => setDoctors([]))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!ignore) setDoctors([]);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+    return () => { ignore = true; };
   }, [formData.clinicId]);
 
   const [availableDates, setAvailableDates] = useState([]);
@@ -54,11 +66,20 @@ export function BookAppointment() {
   // Load slots when doctor + date selected
   useEffect(() => {
     if (!formData.doctorProfileId || !formData.date || !formData.clinicId) { setSlots([]); return; }
+    let ignore = false;
     setLoading(true);
     doctorApi.slots(formData.doctorProfileId, { date: formData.date, clinic_id: formData.clinicId })
-      .then(r => setSlots(r.data?.available_slots || []))
-      .catch(() => setSlots([]))
-      .finally(() => setLoading(false));
+      .then(r => {
+        if (ignore) return;
+        setSlots(r.data?.available_slots || []);
+      })
+      .catch(() => {
+        if (!ignore) setSlots([]);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+    return () => { ignore = true; };
   }, [formData.doctorProfileId, formData.date, formData.clinicId]);
 
   // Load doctor's general availability to calculate available dates
@@ -68,9 +89,11 @@ export function BookAppointment() {
       return;
     }
     
+    let ignore = false;
     // Fetch the weekly schedule for this doctor at this clinic
     doctorApi.availability(formData.doctorProfileId, { clinic_id: formData.clinicId })
       .then(res => {
+        if (ignore) return;
         const schedule = Array.isArray(res.data) ? res.data : (res.data?.results || []);
         if (schedule.length === 0) {
           setAvailableDates([]);
@@ -103,9 +126,12 @@ export function BookAppointment() {
         }
       })
       .catch(err => {
+        if (ignore) return;
         console.error("Failed to load doctor availability", err);
         setAvailableDates([]);
       });
+      
+    return () => { ignore = true; };
   }, [formData.doctorProfileId, formData.clinicId]);
 
   const handleNext = () => setStep(s => Math.min(s + 1, 5));
@@ -202,7 +228,7 @@ export function BookAppointment() {
                         className="w-full text-left"
                         style={selectBtnStyle(formData.clinicId === c.id)}>
                         <p className="font-semibold text-sm">{c.name}</p>
-                        <p className="text-xs opacity-70 mt-0.5">{c.city} · {c.clinic_type} · {c.member_count} doctors</p>
+                        <p className="text-xs opacity-70 mt-0.5">{c.city} · {c.clinic_type} · {typeof c.doctor_count === 'number' ? c.doctor_count : 0} doctors</p>
                       </button>
                     ))}
                   </div>
@@ -371,7 +397,7 @@ export function BookAppointment() {
                     style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
                     <CheckCircle2 size={48} />
                   </div>
-                  <h2 className="text-3xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Booking Confirmed! 🎉</h2>
+                  <h2 className="text-3xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Booking Confirmed!</h2>
                   <p className="mb-8 max-w-sm mx-auto text-sm" style={{ color: 'var(--text-muted)' }}>
                     Your appointment request has been submitted and is pending confirmation from the clinic.
                   </p>
