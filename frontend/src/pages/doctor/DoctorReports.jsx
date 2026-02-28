@@ -208,7 +208,6 @@ function SummaryModal({ isOpen, onClose, summary, filename, loading, error }) {
                   {s.one_line_summary && (
                     <div className="relative rounded-2xl overflow-hidden p-5"
                       style={{ background: 'linear-gradient(135deg,rgba(14,165,233,0.08) 0%,rgba(99,102,241,0.08) 100%)', border: '1px solid rgba(99,102,241,0.2)' }}>
-                      {/* decorative icon */}
                       <div className="absolute top-3 right-3 opacity-10">
                         <MessageSquare size={48} />
                       </div>
@@ -218,15 +217,34 @@ function SummaryModal({ isOpen, onClose, summary, filename, loading, error }) {
                           <MessageSquare size={14} className="text-white" />
                         </div>
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#0ea5e9' }}>Summary</p>
+                          <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#0ea5e9' }}>Quick Overview</p>
                           <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{s.one_line_summary}</p>
                         </div>
                       </div>
                     </div>
                   )}
 
+                  {/* Additional Fields Rendered */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {s.chief_complaint && s.chief_complaint !== 'Not specified.' && (
+                      <InfoCard icon={<Activity size={14} />} title="Chief Complaint" value={s.chief_complaint} />
+                    )}
+                    {s.diagnosis && s.diagnosis !== 'Not specified.' && (
+                      <InfoCard icon={<AlertTriangle size={14} />} title="Diagnosis" value={s.diagnosis} />
+                    )}
+                    {s.history && s.history !== 'Not specified.' && (
+                      <InfoCard icon={<ClipboardList size={14} />} title="History" value={s.history} className="sm:col-span-2" />
+                    )}
+                    {s.examination && s.examination !== 'Not specified.' && (
+                      <InfoCard icon={<Stethoscope size={14} />} title="Examination" value={s.examination} className="sm:col-span-2" />
+                    )}
+                    {s.treatment && s.treatment !== 'Not specified.' && (
+                      <InfoCard icon={<CheckCircle2 size={14} />} title="Treatment" value={s.treatment} className="sm:col-span-2" />
+                    )}
+                  </div>
+
                   {/* Recommendations */}
-                  {s.recommendations && (
+                  {s.recommendations && s.recommendations !== 'Not specified.' && (
                     <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                       <div className="flex items-center gap-2 px-4 py-2.5"
                         style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
@@ -458,6 +476,18 @@ function Info2({ label, value, mono = false }) {
   );
 }
 
+function InfoCard({ icon, title, value, className = '' }) {
+  return (
+    <div className={`flex flex-col gap-1.5 p-4 rounded-xl ${className}`} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center gap-1.5">
+        <span style={{ color: 'var(--primary)' }}>{icon}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{title}</span>
+      </div>
+      <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{value}</p>
+    </div>
+  );
+}
+
 function BigStat({ emoji, label, value, color }) {
   return (
     <div className="flex items-center gap-3">
@@ -484,6 +514,7 @@ export function DoctorReports() {
   const [reqPatients, setReqPatients] = useState([]);
   const [reqDocs, setReqDocs] = useState([]);   // known docs from existing consents
   const [reqPatientsLoading, setReqPatientsLoading] = useState(false);
+  const [reqDocsLoading, setReqDocsLoading] = useState(false);
   const [reqDocsError, setReqDocsError] = useState(null);
 
   // Quick Summary Modal
@@ -542,33 +573,38 @@ export function DoctorReports() {
     }
   };
 
-  // When a patient is selected, surface known docs from existing consent requests
-  const handlePatientChange = (patientId) => {
+  // When a patient is selected, fetch their actual documents from the API
+  const handlePatientChange = async (patientId) => {
     setReqData(prev => ({ ...prev, patientId, documentId: '', manualUuid: '' }));
     setReqDocsError(null);
-    if (!patientId) { setReqDocs([]); return; }
-    // Mine known document info from the doctor's existing consent requests
-    const known = requests
-      .filter(r => {
-        const pid = r.patient?.id ?? r.patient;
-        return String(pid) === String(patientId);
-      })
-      .reduce((acc, r) => {
-        const doc = r.document;
-        if (!doc) return acc;
-        const id = typeof doc === 'object' ? doc.id : doc;
-        const title = typeof doc === 'object' ? (doc.title || doc.document_type || id) : id;
-        if (id && !acc.find(d => d.id === id)) acc.push({ id, title });
-        return acc;
-      }, []);
-    setReqDocs(known);
-    if (known.length === 0) setReqDocsError('No previously requested documents found for this patient. Enter the document UUID below.');
+    setReqDocs([]);
+    
+    if (!patientId) return;
+
+    setReqDocsLoading(true);
+    try {
+      const { data } = await documentApi.patientDocs(patientId);
+      const docs = Array.isArray(data) ? data : (data.documents || data.results || []);
+      
+      const mapped = docs.map(d => ({
+        id: d.id,
+        title: d.title || d.document_type || d.id
+      }));
+
+      setReqDocs(mapped);
+      if (mapped.length === 0) setReqDocsError('No documents found for this patient.');
+    } catch (err) {
+      console.error('Failed to fetch patient docs:', err);
+      setReqDocsError('Could not load patient documents. Please try again.');
+    } finally {
+      setReqDocsLoading(false);
+    }
   };
 
   const handleRequestSubmit = async (e) => {
     e.preventDefault();
-    const docId = reqData.documentId || reqData.manualUuid.trim();
-    if (!docId) { alert('Please select a document or enter a Document UUID.'); return; }
+    const docId = reqData.documentId;
+    if (!docId) { alert('Please select a document.'); return; }
     setRequesting(true);
     try {
       const payload = { document: docId, purpose: reqData.purpose || undefined };
@@ -580,7 +616,7 @@ export function DoctorReports() {
       loadDocs();
     } catch (err) {
       console.error(err);
-      alert('Failed to request access. Ensure the document UUID is correct.');
+      alert('Failed to request access. Ensure the document is correct.');
     } finally {
       setRequesting(false);
     }
@@ -596,12 +632,15 @@ export function DoctorReports() {
       const blob = await fileRes.blob();
 
       // Determine a sensible filename
-      const urlParts = doc.file.split('/');
-      const inferredFilename = urlParts[urlParts.length - 1] || 'report.pdf';
+      let inferredFilename = doc.file.split('/').pop() || 'report.pdf';
+      inferredFilename = inferredFilename.split('?')[0]; // Remove query params
+      if (!inferredFilename.toLowerCase().endsWith('.pdf')) {
+        inferredFilename += '.pdf';
+      }
 
       // 2. Build multipart/form-data for the AI endpoint
       const form = new FormData();
-      form.append('file', new File([blob], inferredFilename, { type: blob.type || 'application/pdf' }));
+      form.append('file', new File([blob], inferredFilename, { type: 'application/pdf' }));
       form.append('age', doc.patient?.age ?? 0);
       form.append('gender', doc.patient?.gender ?? 'Unknown');
       form.append('prev_admissions', 0);
@@ -614,8 +653,14 @@ export function DoctorReports() {
       });
 
       if (!apiRes.ok) {
-        const errText = await apiRes.text();
-        throw new Error(errText || `Server error ${apiRes.status}`);
+        let errStr = `Server error ${apiRes.status}`;
+        try {
+          const errText = await apiRes.text();
+          const errData = JSON.parse(errText);
+          if (errData.detail) errStr = typeof errData.detail === 'string' ? errData.detail : JSON.stringify(errData.detail);
+          else errStr = errText || errStr;
+        } catch (e) {}
+        throw new Error(errStr);
       }
 
       const data = await apiRes.json();
@@ -633,11 +678,14 @@ export function DoctorReports() {
       const fileRes = await fetch(doc.file);
       if (!fileRes.ok) throw new Error('Could not fetch the document file.');
       const blob = await fileRes.blob();
-      const urlParts = doc.file.split('/');
-      const inferredFilename = urlParts[urlParts.length - 1] || 'report.pdf';
+      let inferredFilename = doc.file.split('/').pop() || 'report.pdf';
+      inferredFilename = inferredFilename.split('?')[0];
+      if (!inferredFilename.toLowerCase().endsWith('.pdf')) {
+        inferredFilename += '.pdf';
+      }
 
       const form = new FormData();
-      form.append('file', new File([blob], inferredFilename, { type: blob.type || 'application/pdf' }));
+      form.append('file', new File([blob], inferredFilename, { type: 'application/pdf' }));
 
       const baseUrl = import.meta.env.VITE_AI_URL?.replace(/\/$/, '');
       const apiRes = await fetch(`${baseUrl}/report/summary`, {
@@ -645,10 +693,29 @@ export function DoctorReports() {
         headers: { accept: 'application/json' },
         body: form,
       });
-      if (!apiRes.ok) throw new Error(`Server error ${apiRes.status}`);
+      if (!apiRes.ok) {
+        let errStr = `Server error ${apiRes.status}`;
+        try {
+          const errText = await apiRes.text();
+          const errData = JSON.parse(errText);
+          if (errData.detail) errStr = typeof errData.detail === 'string' ? errData.detail : JSON.stringify(errData.detail);
+          else errStr = errText || errStr;
+        } catch (e) {}
+        throw new Error(errStr);
+      }
       const data = await apiRes.json();
       if (data.status !== 'success') throw new Error('Summary returned a non-success status.');
-      setSummaryModal(prev => ({ ...prev, loading: false, summary: data.summary, filename: data.filename }));
+      
+      let parsedSummary = data.summary;
+      if (typeof parsedSummary === 'string') {
+        try {
+          parsedSummary = JSON.parse(parsedSummary);
+        } catch (e) {
+          console.error("Failed to parse summary JSON", e);
+        }
+      }
+
+      setSummaryModal(prev => ({ ...prev, loading: false, summary: parsedSummary, filename: data.filename }));
     } catch (err) {
       setSummaryModal(prev => ({ ...prev, loading: false, error: err.message || 'Summary failed. Please try again.' }));
     }
@@ -942,48 +1009,32 @@ export function DoctorReports() {
             <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
               Select Document
             </label>
-            {reqDocs.length > 0 ? (
+            {reqDocsLoading ? (
+               <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                 <Loader2 size={14} className="animate-spin shrink-0" /> Fetching patient documents…
+               </div>
+            ) : reqDocs.length > 0 ? (
               <select
+                required
                 value={reqData.documentId}
                 disabled={!reqData.patientId}
-                onChange={e => setReqData(prev => ({ ...prev, documentId: e.target.value, manualUuid: '' }))}
+                onChange={e => setReqData(prev => ({ ...prev, documentId: e.target.value }))}
                 className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 disabled:opacity-50"
                 style={{ background: 'var(--bg-secondary)', color: reqData.documentId ? 'var(--text-primary)' : 'var(--text-muted)', border: '1px solid var(--border)' }}
               >
-                <option value="">— Pick a previously requested document —</option>
+                <option value="">— Pick a document —</option>
                 {reqDocs.map(d => (
                   <option key={d.id} value={d.id}>{d.title}</option>
                 ))}
-                <option value="__manual__">✏️ Enter UUID manually…</option>
               </select>
             ) : (
               reqData.patientId && (
                 <p className="text-xs px-1" style={{ color: 'var(--text-muted)' }}>
-                  No previously requested documents for this patient.
+                  {reqDocsError || 'No documents found for this patient.'}
                 </p>
               )
             )}
           </div>
-
-          {/* Manual UUID — shown when no known docs, or doctor picks "Enter manually" */}
-          {(reqData.patientId && (reqDocs.length === 0 || reqData.documentId === '__manual__')) && (
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                Document UUID
-              </label>
-              <input
-                type="text"
-                value={reqData.manualUuid}
-                onChange={e => setReqData(prev => ({ ...prev, manualUuid: e.target.value }))}
-                placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
-                className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 font-mono"
-                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
-              />
-              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                Ask the patient to share their document ID from their Documents page.
-              </p>
-            </div>
-          )}
 
           {/* Purpose */}
           <div>

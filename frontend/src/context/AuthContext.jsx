@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
     role:                 ROLE_MAP[u.roles?.id] || 'Patient',
     roles:                u.roles,
     is_partial_onboarding:   u.is_partial_onboarding  || false,
-    is_complete_onboarding:  u.is_complete_onboarding || false,
+    is_complete_onboarding:  u.is_complete_onboarding || !!u.gender,
   });
 
   // Restore session from stored token on mount
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
       setTokens(data.access, data.refresh);
       setUser(u);
-      return { success: true, role: u.role, is_partial_onboarding: u.is_partial_onboarding };
+      return { success: true, role: u.role, is_partial_onboarding: u.is_partial_onboarding, is_complete_onboarding: u.is_complete_onboarding };
     } catch (err) {
       const msg = err.response?.data?.message
         || err.response?.data?.detail

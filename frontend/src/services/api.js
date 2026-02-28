@@ -162,6 +162,7 @@ export const documentApi = {
   // Single document  →  GET/DELETE /api/documents/{id}/
   get: (id) => api.get(`/documents/${id}/`),
   delete: (id) => api.delete(`/documents/${id}/`),
+  patientDocs: (patientId) => api.get('/documents/patient-docs/', { params: { patient_id: patientId } }),
 
   // Access logs
   accessLog: () => api.get('/documents/access-log/'),            // GET /api/documents/access-log/
