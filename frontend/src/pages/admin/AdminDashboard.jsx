@@ -24,6 +24,7 @@ export function AdminDashboard() {
 
   const [members, setMembers]         = useState([]);
   const [clinic, setClinic]           = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading]         = useState(true);
 
@@ -32,17 +33,18 @@ export function AdminDashboard() {
       const { data: clinics } = await clinicApi.myClinics();
       if (clinics?.length) {
         setClinic(clinics[0]);
-        const [membRes, apptRes] = await Promise.allSettled([
+        const [membRes, dashRes] = await Promise.allSettled([
           clinicApi.members(clinics[0].id, {}),
-          appointmentApi.doctorList({}),
+          clinicApi.dashboard(clinics[0].id, {}),
         ]);
         if (membRes.status === 'fulfilled') {
           const d = membRes.value.data;
           setMembers(Array.isArray(d) ? d : (d.results || []));
         }
-        if (apptRes.status === 'fulfilled') {
-          const d = apptRes.value.data;
-          setAppointments(Array.isArray(d) ? d : (d.results || []));
+        if (dashRes.status === 'fulfilled') {
+          const d = dashRes.value.data;
+          setDashboardData(d);
+          setAppointments(d.appointments || []);
         }
       }
     } catch {
@@ -59,10 +61,9 @@ export function AdminDashboard() {
   const labStaff      = members.filter(m => m.member_role === 'lab_member');
   const totalStaff    = members.length;
 
-  const today = new Date().toISOString().split('T')[0];
-  const todayAppts       = appointments.filter(a => a.date === today || a.scheduled_date === today || (a.slot?.date === today));
+  const todayApptsCount  = dashboardData?.summary?.total || 0;
   const uniquePatients   = new Set(appointments.map(a => a.patient?.id || a.patient)).size;
-  const pendingAppts     = appointments.filter(a => a.status === 'pending' || a.status === 'confirmed').length;
+  const pendingAppts     = (dashboardData?.summary?.pending || 0) + (dashboardData?.summary?.confirmed || 0);
 
   const statCards = [
     {
@@ -97,8 +98,8 @@ export function AdminDashboard() {
     },
     {
       label: 'Patients Seen',
-      value: loading ? '…' : (uniquePatients || '—'),
-      sub: loading ? '' : `${todayAppts.length} today`,
+      value: loading ? '…' : (uniquePatients || 0),
+      sub: loading ? '' : `${todayApptsCount} today`,
       icon: UserCircle2,
       thick: '#F59E0B',
       bg: 'rgba(245,158,11,0.12)',
@@ -201,7 +202,7 @@ export function AdminDashboard() {
         <div className="relative z-10">
           <p className="text-blue-200 text-sm font-medium mb-1">{getGreeting()},</p>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            {user?.name || 'Administrator'} 👋
+            {user?.name || 'Administrator'} 
           </h1>
           <p className="text-blue-200 text-sm mt-1">
             {clinic ? `Managing · ${clinic.name}` : 'Hospital Administration Portal'}
@@ -308,9 +309,9 @@ export function AdminDashboard() {
               ) : (
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { label: "Total Patients", value: uniquePatients || '—', color: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
-                    { label: "Today's Appointments", value: todayAppts.length, color: '#10B981', bg: 'rgba(16,185,129,0.1)' },
-                    { label: "Pending / Upcoming", value: pendingAppts, color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
+                    { label: "Total Patients", value: uniquePatients || 0, color: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
+                    { label: "Today's Appointments", value: todayApptsCount || 0, color: '#10B981', bg: 'rgba(16,185,129,0.1)' },
+                    { label: "Pending / Upcoming", value: pendingAppts || 0, color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
                   ].map(({ label, value, color, bg: cardBg }) => (
                     <div key={label} className="p-3.5 rounded-xl text-center" style={{ background: cardBg }}>
                       <p className="text-2xl font-black mb-1" style={{ color }}>{value}</p>
