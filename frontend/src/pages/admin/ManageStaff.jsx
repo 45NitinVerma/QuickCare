@@ -111,30 +111,12 @@ function AddMemberModal({ isOpen, onClose, onAdd, role }) {
     <Modal isOpen={isOpen} onClose={handleClose} title={isDoctor ? 'Add Doctor' : 'Add Lab Personnel'}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {infoMsg && (
-          <div className="p-4 rounded-xl text-sm space-y-3"
-            style={{ background: 'rgba(16,185,129,0.08)', color: 'var(--success)', border: '1px solid rgba(34,197,94,0.3)' }}>
-            <p className="font-bold flex items-center gap-2 text-base">
-              <CheckCircle2 size={16} /> Member added successfully!
+          <div className="p-3 rounded-xl text-sm space-y-2"
+            style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)', border: '1px solid rgba(34,197,94,0.3)' }}>
+            <p className="font-semibold flex items-center gap-2">
+              <CheckCircle2 size={14} /> Member added successfully!
             </p>
-            <div className="p-3 rounded-lg" style={{ background: '#fff', border: '1px solid rgba(34,197,94,0.2)' }}>
-              {infoMsg.split('.').map((sentence, idx) => {
-                if (!sentence.trim()) return null;
-                // Highlight temporary password if it appears
-                if (sentence.includes('password is')) {
-                  const parts = sentence.split('password is');
-                  return (
-                    <p key={idx} className="mb-2 text-gray-800">
-                      {parts[0]}password is <strong className="font-mono text-base px-1.5 py-0.5 rounded bg-gray-100 border">{parts[1].trim()}</strong>.
-                    </p>
-                  );
-                }
-                return <p key={idx} className="mb-1 text-gray-700">{sentence.trim()}.</p>;
-              })}
-            </div>
-            <p className="text-xs font-bold flex items-start gap-1.5 mt-2">
-              <AlertTriangle size={14} className="shrink-0 mt-0.5" /> 
-              <span>Important: Share these credentials with the staff member. They must log in and complete their profile onboarding.</span>
-            </p>
+            <p className="text-xs font-bold">⚠️ Share the temporary password with the staff member — they must log in and complete their profile.</p>
           </div>
         )}
 
