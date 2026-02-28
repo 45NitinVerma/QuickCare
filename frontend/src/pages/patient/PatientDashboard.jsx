@@ -201,37 +201,7 @@ export function PatientDashboard() {
 
         {/* AI Health + Calendar */}
         <motion.div variants={cardVariant} className="lg:col-span-1 flex flex-col gap-6">
-          <Card className="border-t-4 border-t-indigo-500 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-[0.04]"><Activity size={120} /></div>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                <Sparkles className="w-4 h-4 text-indigo-500" /> AI Health Assessment
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-20 h-20 rounded-full flex flex-col items-center justify-center border-4 shadow-inner shrink-0"
-                  style={{ borderColor: 'rgba(99,102,241,0.2)', background: 'var(--card)' }}>
-                  <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 leading-none">84</span>
-                  <span className="text-[9px] font-bold uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>Score</span>
-                </div>
-                <div>
-                  <Badge variant="success" className="mb-1.5"><TrendingUp size={11} /> Improving</Badge>
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Low Risk Profile</p>
-                </div>
-              </div>
-              <div className="space-y-2.5">
-                <div className="flex items-start gap-2.5 p-3 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
-                  <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 shrink-0"><Activity size={13} /></div>
-                  <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>Vitals stable. Blood pressure trends are excellent this month.</p>
-                </div>
-                <div className="flex items-start gap-2.5 p-3 rounded-xl border" style={{ borderColor: 'rgba(245,158,11,0.3)', background: 'var(--warning-light)' }}>
-                  <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 shrink-0"><AlertTriangle size={13} /></div>
-                  <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-400">Slight LDL cholesterol elevation noted. Consider dietary review.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
           <Card>
             <CardContent className="p-4">
               <Button onClick={() => setShowCalendar(!showCalendar)} variant="ghost" className="w-full justify-between mb-2">
